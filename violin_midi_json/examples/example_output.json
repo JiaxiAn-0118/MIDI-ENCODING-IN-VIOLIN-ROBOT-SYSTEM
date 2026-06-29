@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "title": "example",
+    "tempo": 120.0,
+    "source_midi": "examples/example.mid",
+    "note_count": 3
+  },
+  "notes": [
+    {
+      "start": 0.0,
+      "end": 0.5,
+      "duration": 0.5,
+      "pitch": 69,
+      "note_name": "A4",
+      "string": "A",
+      "position": 1,
+      "finger": 0,
+      "velocity": 80,
+      "is_string_change": false,
+      "is_position_change": false
+    },
+    {
+      "start": 0.5,
+      "end": 1.0,
+      "duration": 0.5,
+      "pitch": 71,
+      "note_name": "B4",
+      "string": "A",
+      "position": 1,
+      "finger": 1,
+      "velocity": 82,
+      "is_string_change": false,
+      "is_position_change": false
+    },
+    {
+      "start": 1.0,
+      "end": 1.5,
+      "duration": 0.5,
+      "pitch": 76,
+      "note_name": "E5",
+      "string": "E",
+      "position": 1,
+      "finger": 0,
+      "velocity": 85,
+      "is_string_change": true,
+      "is_position_change": false
+    }
+  ]
+}
