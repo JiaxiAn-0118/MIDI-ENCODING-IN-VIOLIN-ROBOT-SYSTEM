@@ -84,3 +84,11 @@ GIGA R1 串口接收程序：
 ```text
 firmware/arduino/giga_serial_bridge/giga_serial_bridge.ino
 ```
+
+## 智能化优化
+
+从全曲动作规划、弓法生成、声音质量评价，到自动校准、数字孪生和自主练琴的完整构想见：
+
+```text
+docs/智能化优化方案.md
+```
