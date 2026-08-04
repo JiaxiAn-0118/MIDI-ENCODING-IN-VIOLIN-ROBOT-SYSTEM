@@ -1,50 +1,83 @@
+"""数据模型（整个工具链里用来"装数据"的容器）。
+
+为什么有这么多 class？
+    从 MIDI 读进来的是一串音符，转换过程中要经过几道工序：
+        原始 MIDI 音符 → 选好指法的音符 → 最终结果
+    每一道都用一个"数据类"把相关字段打包在一起，方便传递、也方便最后导出 JSON。
+
+什么是 @dataclass？
+    这是 Python 的一个语法糖：只要写出字段，Python 就会自动帮我们生成
+    构造函数（不用手写 __init__）、比较、打印等常用功能，代码更简洁。
+    frozen=True 表示"不可变"——创建后不能再改字段值，相当于一个只读的常量结构，
+    这样多人/多函数传递时不会被意外改坏，更安全。
+
+本文件里的四个类，从"原始"到"成品"依次是：
+    MidiNote           ① 从 MIDI 文件读出来的原始音符（只有音高、时间、力度）
+    FingeringCandidate ② 某个音的"一种指法方案"（哪个音、在哪根弦、哪根手指、第几把位）
+    ConvertedNote      ③ 选定指法后的最终音符（给机械臂用的完整信息）
+    ConversionMeta / ConversionResult ④ 一整首曲子的元信息 + 全部音符的汇总
+"""
+
 from dataclasses import asdict, dataclass
 from typing import Any
 
 
 @dataclass(frozen=True)
 class MidiNote:
-    start: float
-    end: float
-    duration: float
-    pitch: int
-    velocity: int
+    """① 原始 MIDI 音符（直接从 .mid 文件里读出来的）。"""
+
+    start: float       # 开始时间（秒）
+    end: float         # 结束时间（秒）
+    duration: float    # 持续时长（秒）= end - start
+    pitch: int         # MIDI 音高编号（如 69 = A4），详见 note_utils.py
+    velocity: int      # 力度（0~127，按键按得多重；后面会换算成弓的压力）
 
 
 @dataclass(frozen=True)
 class FingeringCandidate:
-    pitch: int
-    note_name: str
-    string: str
-    position: int
-    finger: int
-    priority: int
+    """② 某个音的"一种指法方案"。
+
+    同一个音在小提琴上往往有不止一种拉法（可以在不同弦、不同把位上拉），
+    所以一个 pitch 会对应多个 FingeringCandidate，再按 priority 挑一个最合适的。
+    """
+
+    pitch: int        # 这个方案对应的 MIDI 音高
+    note_name: str    # 可读音名，如 "A4"（方便人看，不参与控制）
+    string: str       # 用哪根弦："G" / "D" / "A" / "E"（从低到高）
+    position: int     # 第几把位（左手在琴颈上的上下位置，1=第一把位…）
+    finger: int       # 用哪根手指按弦：0=空弦(不按) 1=食指 2=中指 3=无名指 4=小指
+    priority: int     # 优先级（数字越小越优先选；详见 mapping.py）
 
 
 @dataclass(frozen=True)
 class ConvertedNote:
-    start: float
-    end: float
-    duration: float
-    pitch: int
-    note_name: str
-    string: str
-    position: int
-    finger: int
-    velocity: int
-    is_string_change: bool
-    is_position_change: bool
+    """③ 选定指法后的最终音符（包含机械臂需要的全部信息）。"""
+
+    start: float              # 开始时间（秒）
+    end: float                # 结束时间（秒）
+    duration: float           # 持续时长（秒）
+    pitch: int                # MIDI 音高
+    note_name: str            # 可读音名
+    string: str               # 用哪根弦
+    position: int             # 第几把位
+    finger: int               # 用哪根手指
+    velocity: int             # 原始力度（来自 MIDI）
+    is_string_change: bool    # 相对上一个音是否需要"换弦"（机械臂要提前准备）
+    is_position_change: bool  # 相对上一个音是否需要"换把位"（左手要滑动）
 
     def to_dict(self) -> dict[str, Any]:
+        """把自己转成字典，方便最终写成 JSON 文件。"""
         return asdict(self)
 
 
 @dataclass(frozen=True)
 class ConversionMeta:
-    title: str
-    tempo: float
-    source_midi: str
-    note_count: int
+    """④a 曲子的"元信息"（概况，不是逐个音符）。"""
+
+    title: str        # 曲名
+    tempo: float      # 速度（BPM，每分钟多少拍）
+    source_midi: str  # 源 MIDI 文件路径
+    note_count: int   # 一共多少个音符
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -52,8 +85,15 @@ class ConversionMeta:
 
 @dataclass(frozen=True)
 class ConversionResult:
-    meta: ConversionMeta
-    notes: list[ConvertedNote]
+    """④b 一次转换的最终成果 = 元信息 + 全部音符。
+
+    这个对象会同时喂给两条出路：
+      - 写成 .json  → 给人/调试看
+      - 编码成 .bin → 给单片机(Arduino)执行
+    """
+
+    meta: ConversionMeta          # 曲子概况
+    notes: list[ConvertedNote]    # 逐个音符的完整列表
 
     def to_dict(self) -> dict[str, Any]:
         return {
