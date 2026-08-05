@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from .binary_encoder import BinaryViolinEventEncoder
+from .constants import DEFAULT_LEGATO_GAP_SECONDS, DEFAULT_LEGATO_MAX_INTERVAL
 from .mapping import ViolinPitchMapper
 from .midi_parser import MidiParser
 from .models import ConversionMeta, ConversionResult, ConvertedNote
@@ -59,14 +60,6 @@ class MidiToJsonConverter:
             is_string_change = previous_note is not None and previous_note.string != fingering.string
             is_position_change = previous_note is not None and previous_note.position != fingering.position
             is_legato = False
-            if previous_note is not None:
-                # 简单连奏规则：同弦且相邻音间隔很短时，保持同一弓段连奏。
-                # 这样可以避免快速乐句中每个音都强制换向，改善梁祝等快速连奏效果。
-                time_gap = note.start - previous_note.end
-                is_legato = (
-                    not is_string_change
-                    and time_gap <= 0.02
-                )
 
             converted = ConvertedNote(
                 start=note.start,

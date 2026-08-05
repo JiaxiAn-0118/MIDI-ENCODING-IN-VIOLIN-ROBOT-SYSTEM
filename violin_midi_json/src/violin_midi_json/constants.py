@@ -1,0 +1,18 @@
+"""共享常量：弓向、连奏判定、弓位估计相关的默认值。"""
+
+# 弓向常量：0=拉弓（Up），1=推弓（Down）。
+BOW_UP = 0
+BOW_DOWN = 1
+
+# 自动判定连奏的启发式阈值。
+DEFAULT_LEGATO_GAP_SECONDS = 0.03
+DEFAULT_LEGATO_MAX_INTERVAL = 7
+
+# 长短音和值规则。
+DEFAULT_LONG_NOTE_BEATS = 1.5
+DEFAULT_SHORT_NOTE_BEATS = 0.5
+
+# 弓位状态机参数。
+DEFAULT_BOW_DELTA_MAX = 0.25
+DEFAULT_BOW_DELTA_MIN = 0.07
+DEFAULT_BOW_POSITION_MARGIN = 0.15

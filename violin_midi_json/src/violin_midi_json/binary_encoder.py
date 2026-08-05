@@ -31,6 +31,7 @@
 from pathlib import Path
 from typing import Optional, Union
 
+from .bow_decision import BowDecisionEngine, BowDecisionOptions
 from .models import ConversionResult, ConvertedNote
 
 
@@ -74,15 +75,23 @@ class BinaryViolinEventEncoder:
     def encode_result(self, result: ConversionResult) -> bytes:
         """把一整首曲子（含多个音符）编码成连续的二进制流。"""
         packets: list[bytes] = []
-        bow_direction = BOW_DOWN
-        previous_note: Optional[ConvertedNote] = None
+        bow_engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=result.meta.tempo))
 
-        for note in result.notes:
-            if previous_note is not None and not note.is_legato:
-                # 非连奏时，默认切换弓向；连奏时保持当前弓段方向不变。
-                bow_direction = BOW_UP if bow_direction == BOW_DOWN else BOW_DOWN
-            packets.append(self.encode_note(note=note, bow_direction=bow_direction))
-            previous_note = note
+        for index, note in enumerate(result.notes):
+            beat_position = self._compute_beat_position(note.start, result.meta.tempo)
+            decision = bow_engine.decide(
+                note=note,
+                beat_position=beat_position,
+                explicit_legato=note.is_legato,
+                is_first_note=(index == 0),
+            )
+            packets.append(
+                self.encode_note(
+                    note=note,
+                    bow_direction=decision.bow_direction,
+                    is_legato=decision.is_legato,
+                )
+            )
 
         # 把每个音符的 12 字节首尾拼接，得到整首曲子的 .bin 内容。
         return b"".join(packets)
@@ -91,12 +100,13 @@ class BinaryViolinEventEncoder:
         """编码后直接写入 .bin 文件（这个文件就是给 Arduino 用的曲谱）。"""
         Path(output_path).write_bytes(self.encode_result(result))
 
-    def encode_note(self, note: ConvertedNote, bow_direction: int) -> bytes:
+    def encode_note(self, note: ConvertedNote, bow_direction: int, is_legato: bool) -> bytes:
         """把单个音符编码成一个 12 字节数据包。
 
         参数:
             note:         选好指法的音符（ConvertedNote）。
             bow_direction: 当前音符应使用的弓向（0=拉弓，1=推弓）。
+            is_legato:     这个音符是否判定为连奏。
         """
         # —— 先把"人能理解的值"换算成"协议需要的数字" ——
         tick = self._seconds_to_ticks(note.start, "start")           # 开始时间（秒→tick）
@@ -115,7 +125,7 @@ class BinaryViolinEventEncoder:
         # 字节8：弓压（整字节）。
         bow_force = self._uint8(self.default_bow_force, "bow_force")
         # 字节9/10：演奏法标记和预留位。
-        flags = LEGATO_FLAG if note.is_legato else 0
+        flags = LEGATO_FLAG if is_legato else 0
         reserved = 0
 
         # —— 按 12 字节布局拼装数据包正文（前 11 字节）——
@@ -145,6 +155,11 @@ class BinaryViolinEventEncoder:
         if not 0 <= value <= 0xFFFF:
             raise ValueError(f"{field_name} {seconds} s is outside uint16 tick range")
         return value
+
+    def _compute_beat_position(self, start_seconds: float, tempo_bpm: float) -> float:
+        """把音符开始时间转成小节内拍位（quarter beats）。"""
+        seconds_per_quarter = 60.0 / tempo_bpm
+        return start_seconds / seconds_per_quarter
 
     def _string_id(self, string: str) -> int:
         """把弦名(G/D/A/E)转成协议编号(0~3)。"""
