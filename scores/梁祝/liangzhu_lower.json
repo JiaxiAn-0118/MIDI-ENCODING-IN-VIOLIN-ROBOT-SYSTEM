@@ -17,7 +17,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 1.736111,
@@ -30,7 +31,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 2.450397,
@@ -43,7 +45,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 2.688492,
@@ -56,7 +59,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 3.402778,
@@ -69,7 +73,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 3.640873,
@@ -82,7 +87,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 3.878968,
@@ -95,7 +101,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 4.117064,
@@ -108,7 +115,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 4.593254,
@@ -121,7 +129,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 5.30754,
@@ -134,7 +143,8 @@
       "finger": 4,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": true
+      "is_position_change": true,
+      "is_legato": false
     },
     {
       "start": 5.545635,
@@ -147,7 +157,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": true
+      "is_position_change": true,
+      "is_legato": false
     },
     {
       "start": 5.78373,
@@ -160,7 +171,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 6.021826,
@@ -173,7 +185,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 6.259921,
@@ -186,7 +199,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 6.498016,
@@ -199,7 +213,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 8.402778,
@@ -212,7 +227,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 8.878969,
@@ -225,7 +241,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 9.117064,
@@ -238,7 +255,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 9.355159,
@@ -251,7 +269,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 9.83135,
@@ -264,7 +283,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 10.30754,
@@ -277,7 +297,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 11.021826,
@@ -290,7 +311,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 11.259921,
@@ -303,7 +325,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 11.736112,
@@ -316,7 +339,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 12.212302,
@@ -329,7 +353,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 12.688493,
@@ -342,7 +367,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 13.164683,
@@ -355,7 +381,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 13.402778,
@@ -368,7 +395,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 13.640874,
@@ -381,7 +409,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 13.878969,
@@ -394,7 +423,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 14.117064,
@@ -407,7 +437,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 16.021826,
@@ -420,7 +451,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 16.736112,
@@ -433,7 +465,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 16.974207,
@@ -446,7 +479,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 17.450398,
@@ -459,7 +493,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 17.926588,
@@ -472,7 +507,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 18.164683,
@@ -485,7 +521,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 18.402779,
@@ -498,7 +535,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 19.83135,
@@ -511,7 +549,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 20.188493,
@@ -524,7 +563,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 20.307541,
@@ -537,7 +577,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 20.783731,
@@ -550,7 +591,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 21.021826,
@@ -563,7 +605,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 21.259922,
@@ -576,7 +619,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 21.498017,
@@ -589,7 +633,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 21.736112,
@@ -602,7 +647,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 23.640874,
@@ -615,7 +661,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 24.35516,
@@ -628,7 +675,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 24.593255,
@@ -641,7 +689,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 25.069446,
@@ -654,7 +703,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 25.545636,
@@ -667,7 +717,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 26.021827,
@@ -680,7 +731,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 26.259922,
@@ -693,7 +745,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 26.498017,
@@ -706,7 +759,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 26.974208,
@@ -719,7 +773,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 27.212303,
@@ -732,7 +787,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 27.450398,
@@ -745,7 +801,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 28.402779,
@@ -758,7 +815,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 29.35516,
@@ -771,7 +829,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 29.712303,
@@ -784,7 +843,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 29.831351,
@@ -797,7 +857,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 30.069446,
@@ -810,7 +871,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 30.307541,
@@ -823,7 +885,8 @@
       "finger": 2,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 30.545636,
@@ -836,7 +899,8 @@
       "finger": 0,
       "velocity": 64,
       "is_string_change": true,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": false
     },
     {
       "start": 30.783732,
@@ -849,7 +913,8 @@
       "finger": 1,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 31.021827,
@@ -862,7 +927,8 @@
       "finger": 3,
       "velocity": 64,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     },
     {
       "start": 31.259922,
@@ -875,7 +941,8 @@
       "finger": 0,
       "velocity": 80,
       "is_string_change": false,
-      "is_position_change": false
+      "is_position_change": false,
+      "is_legato": true
     }
   ]
 }
