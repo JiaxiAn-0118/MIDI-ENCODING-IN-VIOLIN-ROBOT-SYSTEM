@@ -49,6 +49,7 @@ class MockArduino(Node):
 
         # 解码成功：计数 +1，回一句 "ACK"（Acknowledged，已确认）并带上各字段值。
         self.event_count += 1
+        legato = bool(event["flags"] & 0x04)
         self.publish_status(
             "ACK "
             f"count={self.event_count} "
@@ -60,7 +61,9 @@ class MockArduino(Node):
             f"position={event['position']} "
             f"bow_dir={event['bow_direction']} "
             f"bow_speed={event['bow_speed']} "
-            f"bow_force={event['bow_force']}"
+            f"bow_force={event['bow_force']} "
+            f"legato={int(legato)} "
+            f"flags=0x{event['flags']:02X}"
         )
 
     def publish_status(self, text: str) -> None:

@@ -30,6 +30,10 @@
 const uint8_t HEADER = 0xA5;     // 包头：每个数据包都以它开头（uint8_t = 8位无符号整数，范围 0~255）
 const size_t PACKET_SIZE = 12;   // 每个数据包固定 12 字节
 
+const uint8_t BOW_UP = 0;        // 弓方向：拉弓
+const uint8_t BOW_DOWN = 1;      // 弓方向：推弓
+const uint8_t LEGATO_FLAG = 0x04; // Flags 中的 legato 标志
+
 // 结构体(struct)：把"一个演奏事件"的各个字段打包在一起，方便在程序里整体传递。
 struct ViolinEvent {
   uint16_t tick;        // 拍点（触发时刻）。uint16_t = 16位无符号整数（0~65535）
@@ -77,6 +81,7 @@ bool decodePacket(const uint8_t *packet, ViolinEvent &event) {
 
 // 回一句 ACK（确认收到），并把关键字段打印出来，方便在串口监视器里观察。
 void sendAck(const ViolinEvent &event) {
+  bool legato = (event.flags & LEGATO_FLAG) != 0;
   Serial.print("ACK tick=");
   Serial.print(event.tick);
   Serial.print(" pitch=");
@@ -86,7 +91,56 @@ void sendAck(const ViolinEvent &event) {
   Serial.print(" finger=");
   Serial.print(event.finger);
   Serial.print(" position=");
-  Serial.println(event.position);
+  Serial.print(event.position);
+  Serial.print(" bow_dir=");
+  Serial.print(event.bowDirection);
+  Serial.print(" bow_speed=");
+  Serial.print(event.bowSpeed);
+  Serial.print(" bow_force=");
+  Serial.print(event.bowForce);
+  Serial.print(" legato=");
+  Serial.print(legato ? "1" : "0");
+  Serial.print(" flags=0x");
+  if (event.flags < 16) {
+    Serial.print('0');
+  }
+  Serial.println(event.flags, HEX);
+}
+
+void setBowDirection(uint8_t direction) {
+  // 这里是弓方向控制入口，实际方案可替换为电机或伺服控制。
+  Serial.print("SET_BOW_DIR ");
+  Serial.println(direction);
+}
+
+void setBowSpeed(uint8_t speed) {
+  // 这里是弓速控制入口，实际方案可替换为电机速度输出。
+  Serial.print("SET_BOW_SPEED ");
+  Serial.println(speed);
+}
+
+void setBowForce(uint8_t force) {
+  // 这里是弓压控制入口，实际方案可替换为压力控制输出。
+  Serial.print("SET_BOW_FORCE ");
+  Serial.println(force);
+}
+
+void playEvent(const ViolinEvent &event, bool previous_legato) {
+  bool legato = (event.flags & LEGATO_FLAG) != 0;
+  if (legato && previous_legato) {
+    // 连奏：保持当前弓段方向，更新弓速与弓压即可。
+    Serial.println("PLAY_EVENT legato continuation");
+    setBowSpeed(event.bowSpeed);
+    setBowForce(event.bowForce);
+  } else {
+    // 非连奏或连奏断开时：重置弓段方向与弓参数。
+    Serial.println("PLAY_EVENT new bow stroke");
+    setBowDirection(event.bowDirection);
+    setBowSpeed(event.bowSpeed);
+    setBowForce(event.bowForce);
+  }
+
+  // 这里可以增加实际按弦、移动把位、等待 tick 等动作。
 }
 
 // —— 上电后只跑一次 ——
@@ -121,7 +175,9 @@ void loop() {
     ViolinEvent event;
     if (decodePacket(packet, event)) {
       sendAck(event);
-      // Future integration point: playEvent(event);  ← 将来在这里加"驱动电机演奏"的代码
+      static bool previous_legato = false;
+      playEvent(event, previous_legato);
+      previous_legato = (event.flags & LEGATO_FLAG) != 0;
     } else {
       Serial.println("NACK invalid_packet");   // 校验失败：回 NACK（有问题）
     }
