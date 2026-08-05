@@ -64,6 +64,7 @@ class ConvertedNote:
     velocity: int             # 原始力度（来自 MIDI）
     is_string_change: bool    # 相对上一个音是否需要"换弦"（机械臂要提前准备）
     is_position_change: bool  # 相对上一个音是否需要"换把位"（左手要滑动）
+    is_legato: bool            # 是否可连奏（同一弓段继续，不必换弓向）
 
     def to_dict(self) -> dict[str, Any]:
         """把自己转成字典，方便最终写成 JSON 文件。"""

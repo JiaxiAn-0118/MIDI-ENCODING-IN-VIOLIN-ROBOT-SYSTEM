@@ -29,7 +29,7 @@
 """
 
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from .models import ConversionResult, ConvertedNote
 
@@ -49,6 +49,9 @@ STRING_IDS = {
 # 运弓方向：拉弓（向琴尖方向）=0，推弓（向琴马方向）=1。
 BOW_UP = 0
 BOW_DOWN = 1
+
+# Flags 字节中的连奏标志。
+LEGATO_FLAG = 0x04
 
 
 class BinaryViolinEventEncoder:
@@ -70,10 +73,17 @@ class BinaryViolinEventEncoder:
 
     def encode_result(self, result: ConversionResult) -> bytes:
         """把一整首曲子（含多个音符）编码成连续的二进制流。"""
-        packets = [
-            self.encode_note(note=note, note_index=index)
-            for index, note in enumerate(result.notes)
-        ]
+        packets: list[bytes] = []
+        bow_direction = BOW_DOWN
+        previous_note: Optional[ConvertedNote] = None
+
+        for note in result.notes:
+            if previous_note is not None and not note.is_legato:
+                # 非连奏时，默认切换弓向；连奏时保持当前弓段方向不变。
+                bow_direction = BOW_UP if bow_direction == BOW_DOWN else BOW_DOWN
+            packets.append(self.encode_note(note=note, bow_direction=bow_direction))
+            previous_note = note
+
         # 把每个音符的 12 字节首尾拼接，得到整首曲子的 .bin 内容。
         return b"".join(packets)
 
@@ -81,12 +91,12 @@ class BinaryViolinEventEncoder:
         """编码后直接写入 .bin 文件（这个文件就是给 Arduino 用的曲谱）。"""
         Path(output_path).write_bytes(self.encode_result(result))
 
-    def encode_note(self, note: ConvertedNote, note_index: int) -> bytes:
+    def encode_note(self, note: ConvertedNote, bow_direction: int) -> bytes:
         """把单个音符编码成一个 12 字节数据包。
 
         参数:
-            note:       选好指法的音符（ConvertedNote）。
-            note_index: 这是曲子里第几个音符（从 0 开始），用来决定运弓方向。
+            note:         选好指法的音符（ConvertedNote）。
+            bow_direction: 当前音符应使用的弓向（0=拉弓，1=推弓）。
         """
         # —— 先把"人能理解的值"换算成"协议需要的数字" ——
         tick = self._seconds_to_ticks(note.start, "start")           # 开始时间（秒→tick）
@@ -100,15 +110,12 @@ class BinaryViolinEventEncoder:
             | (self._uint3(note.finger, "finger") << 3) # 手指左移 3 位，放到中间 3 位
             | self._uint3(note.position, "position")    # 把位放在最低 3 位
         )
-        # 运弓方向：第 0、2、4… 个音符用"推弓"，第 1、3、5… 个用"拉弓"，
-        # 即相邻音符弓向交替（模拟真实演奏中一来一回的运弓）。
-        bow_direction = BOW_DOWN if note_index % 2 == 0 else BOW_UP
         # 字节7：最高 1 位放弓方向，低 7 位放弓速。
         bow = (bow_direction << 7) | self._uint7(self.default_bow_speed, "bow_speed")
         # 字节8：弓压（整字节）。
         bow_force = self._uint8(self.default_bow_force, "bow_force")
-        # 字节9/10：演奏法标记和预留位，目前都是 0（留给将来扩展）。
-        flags = 0
+        # 字节9/10：演奏法标记和预留位。
+        flags = LEGATO_FLAG if note.is_legato else 0
         reserved = 0
 
         # —— 按 12 字节布局拼装数据包正文（前 11 字节）——

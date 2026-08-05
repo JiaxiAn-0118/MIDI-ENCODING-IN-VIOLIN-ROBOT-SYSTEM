@@ -56,6 +56,18 @@ class MidiToJsonConverter:
         # ② 逐个音符挑选默认指法，并顺带判断是否需要换弦/换把位。
         for note in notes:
             fingering = self.mapper.choose_default(note.pitch)
+            is_string_change = previous_note is not None and previous_note.string != fingering.string
+            is_position_change = previous_note is not None and previous_note.position != fingering.position
+            is_legato = False
+            if previous_note is not None:
+                # 简单连奏规则：同弦且相邻音间隔很短时，保持同一弓段连奏。
+                # 这样可以避免快速乐句中每个音都强制换向，改善梁祝等快速连奏效果。
+                time_gap = note.start - previous_note.end
+                is_legato = (
+                    not is_string_change
+                    and time_gap <= 0.02
+                )
+
             converted = ConvertedNote(
                 start=note.start,
                 end=note.end,
@@ -68,8 +80,9 @@ class MidiToJsonConverter:
                 velocity=note.velocity,
                 # 和上一个音相比：弦不同→需要换弦；把位不同→需要换把。
                 # 这两个标记对机械臂很有用（可以提前规划动作）。
-                is_string_change=previous_note is not None and previous_note.string != fingering.string,
-                is_position_change=previous_note is not None and previous_note.position != fingering.position,
+                is_string_change=is_string_change,
+                is_position_change=is_position_change,
+                is_legato=is_legato,
             )
             converted_notes.append(converted)
             previous_note = converted  # 记住本音，供下一个音做比较
