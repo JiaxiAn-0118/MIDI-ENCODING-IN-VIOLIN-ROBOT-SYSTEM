@@ -33,6 +33,7 @@ class BowDecision:
     is_legato: bool
     is_strong_beat: bool
     needs_reset_bow: bool
+    bow_speed: int
     beat_position: float
 
 
@@ -78,13 +79,30 @@ class BowDecisionEngine:
         self.previous_note = note
         self.current_bow_position = self._update_bow_position(direction, note)
 
+        bow_speed = self._compute_bow_speed(note, is_legato, direction)
+
         return BowDecision(
             bow_direction=direction,
             is_legato=is_legato,
             is_strong_beat=is_strong_beat,
             needs_reset_bow=needs_reset_bow,
+            bow_speed=bow_speed,
             beat_position=beat_position,
         )
+
+    def _compute_bow_speed(self, note: ConvertedNote, is_legato: bool, direction: int) -> int:
+        """基于音符时值和连奏信息，计算一个 1~10 的弓速等级（数值越大越快）。
+
+        规则：短音用较快弓速，长音用较慢弓速；连奏时适当降低一档以保持平滑。
+        返回值范围固定在 1..10（方便 Arduino 端统一处理）。
+        """
+        quarter_sec = 60.0 / self.options.tempo_bpm
+        norm = min(1.0, note.duration / quarter_sec) if quarter_sec > 0 else 1.0
+        # 线性映射：norm==0 -> 10 (最快)， norm==1 -> 1 (最慢)
+        speed = int(round((1.0 - norm) * 9.0 + 1.0))
+        if is_legato:
+            speed = max(1, speed - 1)
+        return speed
 
     def _is_strong_beat(self, beat_position: float) -> bool:
         beat_in_bar = round(beat_position % float(self.options.beats_per_bar), 4)

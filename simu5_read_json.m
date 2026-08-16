@@ -1,43 +1,3 @@
-% =========================================================================
-%  小提琴机器人「狗腿机构」全系统动力学与选型仿真（最终版 simu_final）
-% -------------------------------------------------------------------------
-%  【这个脚本干什么？】
-%    给定一首曲子(《梁祝》)的 JSON 乐谱，完整模拟机器人在拉这首曲子时：
-%      - 各关节电机要转到什么角度、多快转、需要多大扭矩；
-%      - 滑轨(直线导轨+滚珠丝杠)要承受多大的力、多大的颠覆力矩；
-%    最终输出一份「电机/滑轨选型报告」——告诉机械组该买什么规格的电机和导轨。
-%
-%  【机构长什么样？（"狗腿" = 平行双曲柄双腿）】
-%    一条横向滑轨上挂着一个滑块，滑块左右两侧各伸出一条"腿"(左腿/右腿)。
-%    每条腿有大腿(L1/R1)和小腿(L2/R2)两个关节电机，末端夹住琴弓。
-%      滑块左右滑动 = 运弓(拉/推)；
-%      两条腿的姿态变化 = 换弦(在 G/D/A/E 之间切换)。
-%    "平行双曲柄"指髋关节处用平行四杆机构，让小腿姿态在运动中保持稳定。
-%
-%  【整体流程（10 步，对应下面的 %% 小节）】
-%    1. 设几何/质量参数        2. 定义 4 单音+3 双音的坐标与角度
-%    3. 读乐谱、规划运弓轨迹    4. 逆运动学：轨迹→各关节角
-%    5. 关节角→角速度/角加速度  6. 动力学：算每个电机的扭矩（全篇核心）
-%    7. 播放演奏动画           8. 画选型曲线
-%    9. 打印 4 个电机的选型峰值  10. 滑轨/丝杠的选型指标
-%
-%  【术语速查（机械组遇到看不懂的词来这里查）】
-%    逆运动学(IK)   ：已知末端位置 → 反推各关节角度。第 4 步。
-%    Lagrangian动力学：一套通用的"由运动反算所需力矩"的理论，比简单牛顿法
-%                     更适合这种多关节相互影响的机构。第 6 步的核心。
-%    质量矩阵 M / 耦合项 M12：一个关节动会牵连另一个关节，M12 描述这种耦合。
-%    Coriolis/离心项 h：关节转动时产生的"附加力矩"（类似旋转木马的离心效应）。
-%    雅可比 JᵀF    ：把"末端受到的外力"换算成"各关节要补的力矩"。
-%    五次多项式(S型)：让运弓启停极其平滑（位置/速度/加速度都连续不突跳）。
-%    松香摩擦模型   ：弓毛与弦之间的摩擦力随相对速度变化（拉得快慢摩擦特性不同）。
-%    颠覆力矩 My / 滚转力矩 Mx：滑轨承受的"侧翻/扭转"力矩，是导轨选型的关键指标。
-%    gradient 中心差分：一种比简单 diff 更精确的数值求导方法（第 5 步用）。
-%
-%  【运行前必看】
-%    下面第 45 行 json_path 写的是【协作者电脑上的绝对路径】，换电脑/换人运行时
-%    必须改成你自己的《梁祝》JSON 乐谱路径，否则读不到乐谱会报错。
-%    （本注释块为后加说明，未改动协作者的任何代码。）
-% =========================================================================
 clear; clc; close all;
 
 %% 1. 机械几何尺寸与质量参数 (两腿完全对称平衡)
@@ -82,11 +42,48 @@ State_Angles = deg2rad([28, 14, 5, 0, -5, -14, -28]);
 State_Names  = {'G单音', 'G-D双音', 'D单音', 'D-A双音', 'A单音', 'A-E双音', 'E单音'};
 
 %% 3. 运弓动作定义（从 JSON 乐谱动态读入）
-json_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/26Summer/software/MIDI/scores/梁祝/liangzhu_lower_from_midi.json';
+json_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/Violin_GitHub/MIDI-ENCODING-IN-VIOLIN-ROBOT-SYSTEM/scores/梁祝/liangzhu_lower.json';
 
 raw_str = fileread(json_path);
 score_data = jsondecode(raw_str);
 notes = score_data.notes;
+
+% Ensure bow_direction normalization (JSON uses 'down'/'up')
+for n = 1:length(notes)
+    if isfield(notes(n), 'bow_direction')
+        if strcmp(notes(n).bow_direction, 'down')
+            notes(n).direction = 1; % down -> treat as + direction
+        else
+            notes(n).direction = -1;
+        end
+    else
+        notes(n).direction = 1;
+    end
+    if ~isfield(notes(n), 'is_legato')
+        notes(n).is_legato = false;
+    end
+end
+
+% ---------- 把相邻的 legato 同方向音符合并成段（segment） ----------
+segments = struct('start', {}, 'end', {}, 'direction', {}, 'note_idx', {});
+if ~isempty(notes)
+    i_note = 1;
+    while i_note <= length(notes)
+        s_idx = i_note;
+        s_dir = notes(i_note).direction;
+        e_idx = i_note;
+        % 把后续连续标记为 legato 且方向相同的音符合并
+        while (e_idx + 1) <= length(notes) && isfield(notes(e_idx+1), 'is_legato') && notes(e_idx+1).is_legato && notes(e_idx+1).direction == s_dir
+            e_idx = e_idx + 1;
+        end
+        seg.start = notes(s_idx).start;
+        seg.end = notes(e_idx).end;
+        seg.direction = s_dir;
+        seg.note_idx = s_idx:e_idx;
+        segments(end+1) = seg; %#ok<SAGROW>
+        i_note = e_idx + 1;
+    end
+end
 
 % 建立全局高精度仿真时间轴
 total_duration = notes(end).end; % 乐谱总结束时间
@@ -99,8 +96,8 @@ dt = t(2) - t(1);
 current_string_t = zeros(2, num_steps);
 theta_bow_target = zeros(1, num_steps);
 x_slide_t = zeros(1, num_steps);
-v_slide_t = zeros(1, num_steps);   % 【修复1】解析速度，不再用 diff
-a_slide_t = zeros(1, num_steps);   % 【修复1】解析加速度，不再用 diff
+v_slide_t = zeros(1, num_steps);   
+a_slide_t = zeros(1, num_steps);   
 F_N_t = zeros(1, num_steps);
 current_state_idx = zeros(1, num_steps);
 
@@ -108,13 +105,13 @@ current_state_idx = zeros(1, num_steps);
 stroke_limit = 0.12;       % 单次最大运弓半行程 (m)
 T_bow_blend = 0.05;        % 换弓缓冲时间 (s)
 
-% 3. 运弓动作定义（从 JSON 乐谱动态读入） —— 修复间隙塌陷版
 last_valid_note_idx = 1; % 记录上一个有效的音符索引
+prev_direction = notes(1).direction;
 
 for i = 1:num_steps
     t_curr = t(i);
 
-    % --- 【核心修复】寻找当前时间点对应的音符 ---
+    % --- 寻找当前时间点对应的音符 ---
     note_idx = 0;
     for n = 1:length(notes)
         if t_curr >= notes(n).start && t_curr <= notes(n).end
@@ -123,11 +120,11 @@ for i = 1:num_steps
         end
     end
 
-    % 如果当前时间处于音符之间的间隙，继承上一个音符的属性，防止跳回音符1
+    % 如果当前时间处于音符之间的间隙，继承上一个音符的属性
     if note_idx == 0
         note_idx = last_valid_note_idx;
     else
-        last_valid_note_idx = note_idx; % 更新有效音符索引
+        last_valid_note_idx = note_idx; 
     end
 
     curr_note = notes(note_idx);
@@ -145,51 +142,64 @@ for i = 1:num_steps
     theta_bow_target(i) = th_target;
     F_N_t(i) = 1.5 + (curr_note.velocity / 127) * 3.0;
 
-    % 3. 基于全局音符时值的全段五次样条（S型曲线）运弓轨迹规划
-    note_start = curr_note.start;
-    note_end = curr_note.end;
-    T_note = note_end - note_start;
-
-    if mod(note_idx, 2) == 1
-        x_start_raw = -stroke_limit;
-        x_end_raw = stroke_limit;
-    else
-        x_start_raw = stroke_limit;
-        x_end_raw = -stroke_limit;
+    % 3. 合并 legato 段后的 S 型曲线运弓轨迹规划
+    % 查找当前时间是否位于某个合并段（segment）中
+    seg_found = false;
+    for s = 1:length(segments)
+        if t_curr >= segments(s).start && t_curr <= segments(s).end
+            seg = segments(s);
+            seg_found = true;
+            break;
+        end
     end
 
-    tau = (t_curr - note_start) / T_note;
-    tau = max(min(tau, 1), 0);
+    if seg_found
+        % 使用段的整体起止时间生成一个 S 曲线，保证段内连续运弓
+        seg_start = seg.start;
+        seg_end = seg.end;
+        T_seg = max(seg_end - seg_start, 1e-12);
+        tau = (t_curr - seg_start) / T_seg;
+        tau = max(min(tau, 1), 0);
 
-    % --- 五次多项式位置、速度、加速度解析解 ---
-    % s(tau)   = 10*tau^3 - 15*tau^4 + 6*tau^5
-    % s'(tau)  = 30*tau^2 - 60*tau^3 + 30*tau^4 = 30*tau^2*(1-tau)^2
-    % s''(tau) = 60*tau - 180*tau^2 + 120*tau^3 = 60*tau*(1-tau)*(1-2*tau)
+        if seg.direction == 1
+            x_start_raw = -stroke_limit;
+            x_end_raw = stroke_limit;
+        else
+            x_start_raw = stroke_limit;
+            x_end_raw = -stroke_limit;
+        end
 
-    Delta_x = x_end_raw - x_start_raw;
+        Delta_x = x_end_raw - x_start_raw;
+        poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
+        x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
 
-    % 位置
-    poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
-    x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
-
-    % 【修复1】解析速度: v = dx/dtau * dtau/dt = Delta_x * s'(tau) / T_note
-    if T_note > 1e-12
+        s_prime = 30 * tau^2 * (1 - tau)^2;
+        v_slide_t(i) = Delta_x * s_prime / T_seg;
+        s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
+        a_slide_t(i) = Delta_x * s_double / (T_seg^2);
+    else
+        % 退回到逐音符的 S 曲线（兼容以前逻辑）
+        note_start = curr_note.start;
+        note_end = curr_note.end;
+        T_note = max(note_end - note_start, 1e-12);
+        if curr_note.direction == 1
+            x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
+        else
+            x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
+        end
+        tau = (t_curr - note_start) / T_note;
+        tau = max(min(tau, 1), 0);
+        Delta_x = x_end_raw - x_start_raw;
+        poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
+        x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
         s_prime = 30 * tau^2 * (1 - tau)^2;
         v_slide_t(i) = Delta_x * s_prime / T_note;
-    else
-        v_slide_t(i) = 0;
-    end
-
-    % 【修复1】解析加速度: a = d²x/dtau² / T_note² = Delta_x * s''(tau) / T_note²
-    if T_note > 1e-12
         s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
         a_slide_t(i) = Delta_x * s_double / (T_note^2);
-    else
-        a_slide_t(i) = 0;
     end
 end
 
-% 对换弦角度进行高斯平滑，消除换弦瞬间的阶跃
+% 对换弦角度进行高斯平滑
 theta_bow_t = smoothdata(theta_bow_target, 'gaussian', 15);
 theta_bow_t(end) = theta_bow_t(end-1);
 
@@ -267,14 +277,6 @@ a_y_calf_R = L1 * (cos(motor_R1_sm) .* alpha_R1 - sin(motor_R1_sm) .* omega_R1.^
            + L2 * (cos(motor_R2_sm) .* alpha_R2 - sin(motor_R2_sm) .* omega_R2.^2);
 
 %% 6. 核心：全车双腿4关节电机全动力学解算循环 —— 【修复2：全耦合 2-DOF Lagrangian】
-% --- 给小白的动力学速成（本节是全篇最难、也最核心的部分）---
-%  目标：已知每个关节"怎么动"(角度/角速度/角加速度)，反算"电机要输出多大扭矩"。
-%  方法：Lagrangian 动力学。它把所需力矩拆成 4 类来源（下面代码依次计算）：
-%    ① 惯性项 M·θ̈      —— 让关节产生角加速度所需的力矩（含两关节互相耦合的 M12）；
-%    ② Coriolis/离心 h  —— 关节转动时相互"拽"产生的附加力矩；
-%    ③ 重力项 G         —— 克服机构自身重量所需的力矩；
-%    ④ 雅可比力矩 JᵀF   —— 末端(弓)受到的压弦力、摩擦力，换算到各关节上的力矩。
-%  最终公式：τ = M·θ̈ + h + G + JᵀF（见第 299-300 行）。左右腿各算一遍，结构对称。
 torque_L1 = zeros(1, num_steps); torque_L2 = zeros(1, num_steps);
 torque_R1 = zeros(1, num_steps); torque_R2 = zeros(1, num_steps);
 torque_slide_motor = zeros(1, num_steps);
@@ -409,47 +411,72 @@ omega_L2_deg = rad2deg(omega_L2);
 omega_R1_deg = rad2deg(omega_R1);
 omega_R2_deg = rad2deg(omega_R2);
 
-%% 7. 动态双腿同步演奏仿真动画
-figure('Name', '双闭环平行双曲柄狗腿同步演奏仿真', 'Position', [50, 80, 1100, 700]);
+%% 7. 动态双腿同步演奏仿真动画（含视频导出）- 修复残影与越界版
+fig = figure('Name', '双闭环平行双曲柄狗腿同步演奏仿真', 'Position', [50, 80, 1100, 700]);
 
-for i = 1:2:length(t)
-    clf;
-    x_s = x_slide_t(i); th_b = theta_bow_t(i); P_contact = current_string_t(:, i);
+video_filename = 'violin_simulation.mp4';
+v = VideoWriter(video_filename, 'MPEG-4');
+draw_step = 2;
+v.FrameRate = fs / draw_step; 
+v.Quality = 95;
+open(v);
+
+fprintf('正在生成并录制仿真视频，请稍候...\n');
+
+for i = 1:draw_step:length(t)
+    % --- 【关键修复 1】彻底清空上一帧画板，并重置 hold 状态 ---
+    clf(fig); 
+    ax = axes('Parent', fig);
+    hold(ax, 'on'); 
+    
+    x_s = x_slide_t(i); 
+    th_b = theta_bow_t(i); 
+    P_contact = current_string_t(:, i);
     R_matrix = [cos(th_b), -sin(th_b); sin(th_b), cos(th_b)];
-
-    plot([-0.6, 0.6], [H_slide, H_slide], 'k--', 'LineWidth', 1.5); hold on;
+    
+    % 1. 导轨与滑块
+    plot(ax, [-0.6, 0.6], [H_slide, H_slide], 'k--', 'LineWidth', 1.5);
     slider_w = L_hold + 0.06;
-    rectangle('Position', [x_s - slider_w/2, H_slide, slider_w, 0.02], 'FaceColor', [0.7 0.7 0.7]);
-
-    % --- 绘制左腿 (L1, L2) ---
+    rectangle(ax, 'Position', [x_s - slider_w/2, H_slide, slider_w, 0.02], 'FaceColor', [0.7 0.7 0.7]);
+    
+    % 2. 绘制左腿 (L1, L2)
     P_base_L = [x_s - L_hold/2; H_slide]; P_knee_L = P_knee_L_all(:, i); P_hinge_L = P_hinge_L_all(:, i);
-    plot([P_base_L(1), P_knee_L(1)], [P_base_L(2), P_knee_L(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b'); % 大腿
+    plot(ax, [P_base_L(1), P_knee_L(1)], [P_base_L(2), P_knee_L(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
     P_crank_end_L = P_base_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
-    plot([P_base_L(1), P_crank_end_L(1)], [P_base_L(2), P_crank_end_L(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r'); % 左短曲柄
+    plot(ax, [P_base_L(1), P_crank_end_L(1)], [P_base_L(2), P_crank_end_L(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
     P_knee_jig_L = P_knee_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
-    plot([P_crank_end_L(1), P_knee_jig_L(1)], [P_crank_end_L(2), P_knee_jig_L(2)], 'm--', 'LineWidth', 1.5); % 左长连杆
-    plot([P_knee_L(1), P_hinge_L(1)], [P_knee_L(2), P_hinge_L(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g'); % 左小腿
-
-    % --- 绘制右腿 (R1, R2) ---
+    plot(ax, [P_crank_end_L(1), P_knee_jig_L(1)], [P_crank_end_L(2), P_knee_jig_L(2)], 'm--', 'LineWidth', 1.5);
+    plot(ax, [P_knee_L(1), P_hinge_L(1)], [P_knee_L(2), P_hinge_L(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
+    
+    % 3. 绘制右腿 (R1, R2)
     P_base_R = [x_s + L_hold/2; H_slide]; P_knee_R = P_knee_R_all(:, i); P_hinge_R = P_hinge_R_all(:, i);
-    plot([P_base_R(1), P_knee_R(1)], [P_base_R(2), P_knee_R(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b'); % 右大腿
+    plot(ax, [P_base_R(1), P_knee_R(1)], [P_base_R(2), P_knee_R(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
     P_crank_end_R = P_base_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
-    plot([P_base_R(1), P_crank_end_R(1)], [P_base_R(2), P_crank_end_R(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r'); % 右短曲柄
+    plot(ax, [P_base_R(1), P_crank_end_R(1)], [P_base_R(2), P_crank_end_R(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
     P_knee_jig_R = P_knee_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
-    plot([P_crank_end_R(1), P_knee_jig_R(1)], [P_crank_end_R(2), P_knee_jig_R(2)], 'm--', 'LineWidth', 1.5); % 右长连杆
-    plot([P_knee_R(1), P_hinge_R(1)], [P_knee_R(2), P_hinge_R(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g'); % 右小腿
-
-    % 绘制弓与接触点
-    P_bow_left = P_contact + R_matrix * [-L_bow/2 + x_s; 0]; P_bow_right = P_contact + R_matrix * [L_bow/2 + x_s; 0];
-    plot([P_bow_left(1), P_bow_right(1)], [P_bow_left(2), P_bow_right(2)], 'Color', [0.85 0.5 0], 'LineWidth', 3);
-    plot(P_hinge_L(1), P_hinge_L(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    plot(P_hinge_R(1), P_hinge_R(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    plot(Strings(1,:), Strings(2,:), 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
-    for s = 1:4, text(Strings(1,s)-0.015, Strings(2,s)-0.03, String_Names{s}, 'FontWeight', 'bold'); end
-    plot(P_contact(1), P_contact(2), 'mx', 'MarkerSize', 15, 'LineWidth', 3);
-
-    axis equal; xlim([-0.5, 0.5]); ylim([-0.5, 0.5]); grid on;
-
+    plot(ax, [P_crank_end_R(1), P_knee_jig_R(1)], [P_crank_end_R(2), P_knee_jig_R(2)], 'm--', 'LineWidth', 1.5);
+    plot(ax, [P_knee_R(1), P_hinge_R(1)], [P_knee_R(2), P_hinge_R(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
+    
+    % 4. 绘制琴弓与琴弦
+    P_bow_left = P_contact + R_matrix * [-L_bow/2 + x_s; 0]; 
+    P_bow_right = P_contact + R_matrix * [L_bow/2 + x_s; 0];
+    plot(ax, [P_bow_left(1), P_bow_right(1)], [P_bow_left(2), P_bow_right(2)], 'Color', [0.85 0.5 0], 'LineWidth', 3);
+    
+    plot(ax, P_hinge_L(1), P_hinge_L(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
+    plot(ax, P_hinge_R(1), P_hinge_R(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
+    plot(ax, Strings(1,:), Strings(2,:), 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
+    
+    for s = 1:4
+        text(ax, Strings(1,s)-0.015, Strings(2,s)-0.03, String_Names{s}, 'FontWeight', 'bold');
+    end
+    plot(ax, P_contact(1), P_contact(2), 'mx', 'MarkerSize', 15, 'LineWidth', 3);
+    
+    % --- 【关键修复 2】强制锁定坐标轴与裁剪超出画框的线条 ---
+    axis(ax, 'equal'); 
+    xlim(ax, [-0.5, 0.5]); 
+    ylim(ax, [-0.5, 0.5]); 
+    grid(ax, 'on');
+    
     data_str = {
         sprintf('时间: %.2f s | 音符: %s (%s弦)', t(i), notes(current_state_idx(i)).note_name, notes(current_state_idx(i)).string), ...
         sprintf('L1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_L1_deg(i)/6), abs(torque_L1(i)*1000)), ...
@@ -457,10 +484,20 @@ for i = 1:2:length(t)
         sprintf('R1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_R1_deg(i)/6), abs(torque_R1(i)*1000)), ...
         sprintf('R2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_R2_deg(i)/6), abs(torque_R2(i)*1000))
     };
-    text(-0.48, 0.36, data_str, 'FontSize', 9, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontName', 'Courier');
-    title('全系统平衡：4关节双曲柄狗腿动力学与压弦监测');
-    xlabel('X方向 (m)'); ylabel('Y方向 (m)'); drawnow;
+    text(ax, -0.48, 0.36, data_str, 'FontSize', 9, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontName', 'Courier');
+    title(ax, '全系统平衡：4关节双曲柄狗腿动力学与压弦监测');
+    xlabel(ax, 'X方向 (m)'); ylabel(ax, 'Y方向 (m)');
+    
+    % --- 【关键修复 3】刷新并安全捕获当前帧 ---
+    drawnow limitrate; % 提高绘制效率
+    frame = getframe(fig);
+    writeVideo(v, frame);
+    
+    hold(ax, 'off'); % 结束当前帧绘制
 end
+
+close(v);
+fprintf('视频已成功保存！\n');
 
 %% 8. 绘制完整的系统选型分析曲线图 (包含全部 4 个关节电机负载)
 figure('Name', '全系统4电机全面选型曲线图', 'Position', [100, 50, 1200, 800]);

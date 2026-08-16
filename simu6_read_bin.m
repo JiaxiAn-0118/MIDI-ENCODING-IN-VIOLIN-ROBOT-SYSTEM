@@ -108,7 +108,32 @@ for n = 1:packet_count
     notes(n).velocity = double(force(n));
     bow_direction_bit = bitshift(bow_byte(n), -7);
     notes(n).direction = 1 - 2 * bow_direction_bit;
+    % 把 flags 中的 legato 标志读入，便于仿真阶段保持弓连续
+    LEGATO_FLAG = 4;
+    RESET_BOW_FLAG = 8;
+    notes(n).is_legato = bitand(flags(n), LEGATO_FLAG) ~= 0;
+    notes(n).needs_reset = bitand(flags(n), RESET_BOW_FLAG) ~= 0;
     notes(n).note_name = sprintf('%s_%03d', notes(n).string, pitch(n));
+end
+
+% ---------- 把相邻的 legato 同方向音符合并成段（segment） ----------
+segments = struct('start', {}, 'end', {}, 'direction', {}, 'note_idx', {});
+if ~isempty(notes)
+    i_note = 1;
+    while i_note <= length(notes)
+        s_idx = i_note;
+        s_dir = notes(i_note).direction;
+        e_idx = i_note;
+        while (e_idx + 1) <= length(notes) && isfield(notes(e_idx+1), 'is_legato') && notes(e_idx+1).is_legato && notes(e_idx+1).direction == s_dir
+            e_idx = e_idx + 1;
+        end
+        seg.start = notes(s_idx).start;
+        seg.end = notes(e_idx).end;
+        seg.direction = s_dir;
+        seg.note_idx = s_idx:e_idx;
+        segments(end+1) = seg; %#ok<SAGROW>
+        i_note = e_idx + 1;
+    end
 end
 
 if isempty(notes)
@@ -123,6 +148,24 @@ fprintf('  * 音符 1   : 名称 [%s], 弦 [%s], 起始 [%.2f s], 结束 [%.2f s
 fprintf('  * 末音符 %d: 名称 [%s], 弦 [%s], 起始 [%.2f s], 结束 [%.2f s], 方向 [%d]\n', ...
     length(notes), notes(end).note_name, notes(end).string, notes(end).start, notes(end).end, notes(end).direction);
 fprintf('======================================================\n');
+
+% --- 打印所有读取到的音符详细列表 ---
+fprintf('\n----------------- 详细音符数据列表 -----------------\n');
+fprintf('%-6s | %-10s | %-6s | %-10s | %-10s | %-6s\n', ...
+        '序号', '音符名称', '弦', '起始时间(s)', '结束时间(s)', '运弓方向');
+fprintf('-----------------------------------------------------\n');
+
+for n = 1:length(notes)
+    if notes(n).direction == 1
+        dir_str = '拉弓(+)';
+    else
+        dir_str = '推弓(-)';
+    end
+    fprintf('%-6d | %-10s | %-6s | %-11.2f | %-11.2f | %-6s\n', ...
+            n, notes(n).note_name, notes(n).string, ...
+            notes(n).start, notes(n).end, dir_str);
+end
+fprintf('-----------------------------------------------------\n\n');
 
 % 建立全局高精度仿真时间轴
 total_duration = notes(end).end;
@@ -199,43 +242,61 @@ for i = 1:num_steps
     theta_bow_target(i) = th_target;
     F_N_t(i) = 1.5 + (curr_note.velocity / 127) * 3.0;
 
-    % 基于二进制新运弓方向逻辑生成行程起点/终点
-    note_start = curr_note.start;
-    note_end = curr_note.end;
-    T_note = max(note_end - note_start, 1e-4); % 避免除以 0
-
-    if isfield(curr_note, 'direction') && curr_note.direction == 1
-        % 正向/拉弓: 从负半行程运行至正半行程
-        x_start_raw = -stroke_limit;
-        x_end_raw   =  stroke_limit;
-    elseif isfield(curr_note, 'direction') && curr_note.direction == -1
-        % 反向/推弓: 从正半行程运行至负半行程
-        x_start_raw =  stroke_limit;
-        x_end_raw   = -stroke_limit;
-    else
-        if mod(note_idx, 2) == 1
-            x_start_raw = -stroke_limit;
-            x_end_raw   =  stroke_limit;
-        else
-            x_start_raw =  stroke_limit;
-            x_end_raw   = -stroke_limit;
+    % 基于合并后的 legato 段生成 S 型轨迹（段内连续），否则逐音符轨迹
+    seg_found = false;
+    for s = 1:length(segments)
+        if t_curr >= segments(s).start && t_curr <= segments(s).end
+            seg = segments(s);
+            seg_found = true;
+            break;
         end
     end
 
-    tau = (t_curr - note_start) / T_note;
-    tau = max(min(tau, 1), 0);
+    if seg_found
+        seg_start = seg.start;
+        seg_end = seg.end;
+        T_seg = max(seg_end - seg_start, 1e-4);
+        tau = (t_curr - seg_start) / T_seg;
+        tau = max(min(tau, 1), 0);
 
-    Delta_x = x_end_raw - x_start_raw;
+        if seg.direction == 1
+            x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
+        else
+            x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
+        end
 
-    % 五次多项式 S 型曲线规划
-    poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
-    x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
-
-    % 解析速度与解析加速度
-    s_prime = 30 * tau^2 * (1 - tau)^2;
-    v_slide_t(i) = Delta_x * s_prime / T_note;
-    s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
-    a_slide_t(i) = Delta_x * s_double / (T_note^2);
+        Delta_x = x_end_raw - x_start_raw;
+        poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
+        x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
+        s_prime = 30 * tau^2 * (1 - tau)^2;
+        v_slide_t(i) = Delta_x * s_prime / T_seg;
+        s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
+        a_slide_t(i) = Delta_x * s_double / (T_seg^2);
+    else
+        note_start = curr_note.start;
+        note_end = curr_note.end;
+        T_note = max(note_end - note_start, 1e-4);
+        if isfield(curr_note, 'direction') && curr_note.direction == 1
+            x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
+        elseif isfield(curr_note, 'direction') && curr_note.direction == -1
+            x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
+        else
+            if mod(note_idx, 2) == 1
+                x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
+            else
+                x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
+            end
+        end
+        tau = (t_curr - note_start) / T_note;
+        tau = max(min(tau, 1), 0);
+        Delta_x = x_end_raw - x_start_raw;
+        poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
+        x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
+        s_prime = 30 * tau^2 * (1 - tau)^2;
+        v_slide_t(i) = Delta_x * s_prime / T_note;
+        s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
+        a_slide_t(i) = Delta_x * s_double / (T_note^2);
+    end
 end
 
 % 对换弦角度进行高斯平滑
@@ -411,136 +472,137 @@ omega_L2_deg = rad2deg(omega_L2);
 omega_R1_deg = rad2deg(omega_R1);
 omega_R2_deg = rad2deg(omega_R2);
 
-%% 7. 动态双腿同步演奏仿真动画
-figure('Name', '双闭环平行双曲柄狗腿同步演奏仿真', 'Position', [50, 80, 1100, 700]);
-
-for i = 1:2:length(t)
-    clf;
-    x_s = x_slide_t(i); th_b = theta_bow_t(i); P_contact = current_string_t(:, i);
-    R_matrix = [cos(th_b), -sin(th_b); sin(th_b), cos(th_b)];
-
-    plot([-0.6, 0.6], [H_slide, H_slide], 'k--', 'LineWidth', 1.5); hold on;
-    slider_w = L_hold + 0.06;
-    rectangle('Position', [x_s - slider_w/2, H_slide, slider_w, 0.02], 'FaceColor', [0.7 0.7 0.7]);
-
-    % 左腿
-    P_base_L = [x_s - L_hold/2; H_slide]; P_knee_L = P_knee_L_all(:, i); P_hinge_L = P_hinge_L_all(:, i);
-    plot([P_base_L(1), P_knee_L(1)], [P_base_L(2), P_knee_L(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
-    P_crank_end_L = P_base_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
-    plot([P_base_L(1), P_crank_end_L(1)], [P_base_L(2), P_crank_end_L(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
-    P_knee_jig_L = P_knee_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
-    plot([P_crank_end_L(1), P_knee_jig_L(1)], [P_crank_end_L(2), P_knee_jig_L(2)], 'm--', 'LineWidth', 1.5);
-    plot([P_knee_L(1), P_hinge_L(1)], [P_knee_L(2), P_hinge_L(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
-
-    % 右腿
-    P_base_R = [x_s + L_hold/2; H_slide]; P_knee_R = P_knee_R_all(:, i); P_hinge_R = P_hinge_R_all(:, i);
-    plot([P_base_R(1), P_knee_R(1)], [P_base_R(2), P_knee_R(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
-    P_crank_end_R = P_base_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
-    plot([P_base_R(1), P_crank_end_R(1)], [P_base_R(2), P_crank_end_R(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
-    P_knee_jig_R = P_knee_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
-    plot([P_crank_end_R(1), P_knee_jig_R(1)], [P_crank_end_R(2), P_knee_jig_R(2)], 'm--', 'LineWidth', 1.5);
-    plot([P_knee_R(1), P_hinge_R(1)], [P_knee_R(2), P_hinge_R(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
-
-    % 琴弓与接触点
-    P_bow_left = P_contact + R_matrix * [-L_bow/2 + x_s; 0]; P_bow_right = P_contact + R_matrix * [L_bow/2 + x_s; 0];
-    plot([P_bow_left(1), P_bow_right(1)], [P_bow_left(2), P_bow_right(2)], 'Color', [0.85 0.5 0], 'LineWidth', 3);
-    plot(P_hinge_L(1), P_hinge_L(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    plot(P_hinge_R(1), P_hinge_R(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    plot(Strings(1,:), Strings(2,:), 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
-    for s = 1:4, text(Strings(1,s)-0.015, Strings(2,s)-0.03, String_Names{s}, 'FontWeight', 'bold'); end
-    plot(P_contact(1), P_contact(2), 'mx', 'MarkerSize', 15, 'LineWidth', 3);
-
-    axis equal; xlim([-0.5, 0.5]); ylim([-0.5, 0.5]); grid on;
-
-    data_str = {
-        sprintf('时间: %.2f s | 音符: %s (%s弦)', t(i), notes(current_state_idx(i)).note_name, notes(current_state_idx(i)).string), ...
-        sprintf('L1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_L1_deg(i)/6), abs(torque_L1(i)*1000)), ...
-        sprintf('L2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_L2_deg(i)/6), abs(torque_L2(i)*1000)), ...
-        sprintf('R1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_R1_deg(i)/6), abs(torque_R1(i)*1000)), ...
-        sprintf('R2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_R2_deg(i)/6), abs(torque_R2(i)*1000))
-    };
-    text(-0.48, 0.36, data_str, 'FontSize', 9, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontName', 'Courier');
-    title('全系统平衡：4关节双曲柄狗腿动力学与压弦监测');
-    xlabel('X方向 (m)'); ylabel('Y方向 (m)'); drawnow;
-end
-
-%% 8. 绘制完整的系统选型分析曲线图
-figure('Name', '全系统4电机全面选型曲线图', 'Position', [100, 50, 1200, 800]);
-
-subplot(3,2,1);
-plot(t, v_slide, 'r', 'LineWidth', 2);
-title('滑块直线速度需求 (解析解)'); xlabel('时间 (s)'); ylabel('速度 (m/s)'); grid on;
-
-subplot(3,2,2);
-plot(t, omega_L1_deg/6, 'b', t, omega_L2_deg/6, 'b--', t, omega_R1_deg/6, 'g', t, omega_R2_deg/6, 'g--', 'LineWidth', 1.5);
-title('全车4关节电机转速对比 (gradient中心差分)'); xlabel('时间 (s)'); ylabel('转速 (RPM)');
-legend('L1 大腿', 'L2 小腿', 'R1 大腿', 'R2 小腿'); grid on;
-
-subplot(3,2,3);
-plot(t, torque_slide_motor, 'r', 'LineWidth', 2);
-title('滑轨驱动电机瞬时扭矩'); xlabel('时间 (s)'); ylabel('扭矩 (N·m)'); grid on;
-
-subplot(3,2,4);
-plot(t, torque_L1, 'b', t, torque_L2, 'b--', t, torque_R1, 'g', t, torque_R2, 'g--', 'LineWidth', 1.5);
-title('4关节电机瞬时扭矩对比 (全耦合动力学)'); xlabel('时间 (s)'); ylabel('扭矩 (N·m)');
-legend('L1 大腿', 'L2 小腿', 'R1 大腿', 'R2 小腿'); grid on;
-
-subplot(3,2,5);
-plot(t, torque_slide_motor .* omega_slide_motor, 'r', 'LineWidth', 2);
-title('滑轨电机机械功率'); xlabel('时间 (s)'); ylabel('功率 (W)'); grid on;
-
-subplot(3,2,6);
-plot(t, abs(torque_L1 .* omega_L1), 'b', t, abs(torque_L2 .* omega_L2), 'b--', t, abs(torque_R1 .* omega_R1), 'g', t, abs(torque_R2 .* omega_R2), 'g--', 'LineWidth', 1.5);
-title('4关节电机轴向功率对比 (全耦合动力学)'); xlabel('时间 (s)'); ylabel('功率 (W)');
-legend('L1 大腿', 'L2 小腿', 'R1 大腿', 'R2 小腿'); grid on;
-
-%% 9. 最终选型峰值打印报告
-fprintf('══════════════════════════════════════════════════════\n');
-fprintf(' Part 1: 全系统 4 电机选型数据报告 (全耦合动力学)\n');
-fprintf('══════════════════════════════════════════════════════\n');
-fprintf('【左腿 L1 电机 (大腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_L1_deg))/6, max(abs(torque_L1))*1000, max(abs(torque_L1.*omega_L1)));
-fprintf('【左腿 L2 电机 (小腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_L2_deg))/6, max(abs(torque_L2))*1000, max(abs(torque_L2.*omega_L2)));
-fprintf('【右腿 R1 电机 (大腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_R1_deg))/6, max(abs(torque_R1))*1000, max(abs(torque_R1.*omega_R1)));
-fprintf('【右腿 R2 电机 (小腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_R2_deg))/6, max(abs(torque_R2))*1000, max(abs(torque_R2.*omega_R2)));
-
-%% 10. 滑轨与丝杠副工程选型指标核心解算
-fprintf('\n══════════════════════════════════════════════════════\n');
-fprintf(' Part 2: 滑轨与传动系统工程选型核心指标报告\n');
-fprintf('══════════════════════════════════════════════════════\n');
-
-stroke_bow = max(x_slide_t) - min(x_slide_t);
-L_slider_hardware = L_hold + 0.06;
-safety_margin = 0.04 * 2;
-L_rail_min = stroke_bow + L_slider_hardware + safety_margin;
-
-mu_rail = 0.005;
-F_axial_all = m_slider * a_slide ...
-            + mu_rail * (m_slider * g + abs(F_base_L_y + F_base_R_y)) ...
-            + (F_base_L_x + F_base_R_x);
-F_axial_peak = max(abs(F_axial_all));
-
-My_moment_all = zeros(1, num_steps);
-for i = 1:num_steps
-    F_y_L_curr = F_base_L_y(i);
-    F_y_R_curr = F_base_R_y(i);
-    My_moment_all(i) = F_y_L_curr * (-L_hold/2) + F_y_R_curr * (L_hold/2);
-end
-My_moment_peak = max(abs(My_moment_all));
-
-Mx_moment_all = F_base_L_x * (-L_hold/2) + F_base_R_x * (L_hold/2);
-Mx_moment_peak = max(abs(Mx_moment_all));
-
-max_v_slide = max(abs(v_slide));
-max_n_screw = (max_v_slide / Lead_slide) * 60;
-
-fprintf('【1. 几何尺寸指标】\n');
-fprintf('   * 纯运弓有效行程 (Stroke):       %5.2f mm\n', stroke_bow * 1000);
-fprintf('   * 建议滑轨最小物理总长 (Length):  %5.2f mm\n', L_rail_min * 1000);
-
-fprintf('\n【2. 滚珠丝杠副选型核心参数】\n');
-fprintf('   * 轴向峰值动态推力 (Peak Force):  %5.2f N\n', F_axial_peak);
-fprintf('   * 丝杠峰值运转转速 (Peak Speed):  %5.2f RPM\n', max_n_screw);
-
-fprintf('\n【3. 直线导轨动态力矩负载】\n');
-fprintf('   * 峰值动态颠覆力矩 My (Pitching): %5.2f N·m\n', My_moment_peak);
-fprintf('   * 峰值动态扭转力矩 Mx (Rolling):  %5.2f N·m\n', Mx_moment_peak);
+% %% 7. 动态双腿同步演奏仿真动画
+% 
+% figure('Name', '双闭环平行双曲柄狗腿同步演奏仿真', 'Position', [50, 80, 1100, 700]);
+% 
+% for i = 1:2:length(t)
+%     clf;
+%     x_s = x_slide_t(i); th_b = theta_bow_t(i); P_contact = current_string_t(:, i);
+%     R_matrix = [cos(th_b), -sin(th_b); sin(th_b), cos(th_b)];
+% 
+%     plot([-0.6, 0.6], [H_slide, H_slide], 'k--', 'LineWidth', 1.5); hold on;
+%     slider_w = L_hold + 0.06;
+%     rectangle('Position', [x_s - slider_w/2, H_slide, slider_w, 0.02], 'FaceColor', [0.7 0.7 0.7]);
+% 
+%     % 左腿
+%     P_base_L = [x_s - L_hold/2; H_slide]; P_knee_L = P_knee_L_all(:, i); P_hinge_L = P_hinge_L_all(:, i);
+%     plot([P_base_L(1), P_knee_L(1)], [P_base_L(2), P_knee_L(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
+%     P_crank_end_L = P_base_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
+%     plot([P_base_L(1), P_crank_end_L(1)], [P_base_L(2), P_crank_end_L(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
+%     P_knee_jig_L = P_knee_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
+%     plot([P_crank_end_L(1), P_knee_jig_L(1)], [P_crank_end_L(2), P_knee_jig_L(2)], 'm--', 'LineWidth', 1.5);
+%     plot([P_knee_L(1), P_hinge_L(1)], [P_knee_L(2), P_hinge_L(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
+% 
+%     % 右腿
+%     P_base_R = [x_s + L_hold/2; H_slide]; P_knee_R = P_knee_R_all(:, i); P_hinge_R = P_hinge_R_all(:, i);
+%     plot([P_base_R(1), P_knee_R(1)], [P_base_R(2), P_knee_R(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
+%     P_crank_end_R = P_base_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
+%     plot([P_base_R(1), P_crank_end_R(1)], [P_base_R(2), P_crank_end_R(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
+%     P_knee_jig_R = P_knee_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
+%     plot([P_crank_end_R(1), P_knee_jig_R(1)], [P_crank_end_R(2), P_knee_jig_R(2)], 'm--', 'LineWidth', 1.5);
+%     plot([P_knee_R(1), P_hinge_R(1)], [P_knee_R(2), P_hinge_R(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
+% 
+%     % 琴弓与接触点
+%     P_bow_left = P_contact + R_matrix * [-L_bow/2 + x_s; 0]; P_bow_right = P_contact + R_matrix * [L_bow/2 + x_s; 0];
+%     plot([P_bow_left(1), P_bow_right(1)], [P_bow_left(2), P_bow_right(2)], 'Color', [0.85 0.5 0], 'LineWidth', 3);
+%     plot(P_hinge_L(1), P_hinge_L(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
+%     plot(P_hinge_R(1), P_hinge_R(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
+%     plot(Strings(1,:), Strings(2,:), 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
+%     for s = 1:4, text(Strings(1,s)-0.015, Strings(2,s)-0.03, String_Names{s}, 'FontWeight', 'bold'); end
+%     plot(P_contact(1), P_contact(2), 'mx', 'MarkerSize', 15, 'LineWidth', 3);
+% 
+%     axis equal; xlim([-0.5, 0.5]); ylim([-0.5, 0.5]); grid on;
+% 
+%     data_str = {
+%         sprintf('时间: %.2f s | 音符: %s (%s弦)', t(i), notes(current_state_idx(i)).note_name, notes(current_state_idx(i)).string), ...
+%         sprintf('L1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_L1_deg(i)/6), abs(torque_L1(i)*1000)), ...
+%         sprintf('L2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_L2_deg(i)/6), abs(torque_L2(i)*1000)), ...
+%         sprintf('R1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_R1_deg(i)/6), abs(torque_R1(i)*1000)), ...
+%         sprintf('R2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_R2_deg(i)/6), abs(torque_R2(i)*1000))
+%     };
+%     text(-0.48, 0.36, data_str, 'FontSize', 9, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontName', 'Courier');
+%     title('全系统平衡：4关节双曲柄狗腿动力学与压弦监测');
+%     xlabel('X方向 (m)'); ylabel('Y方向 (m)'); drawnow;
+% end
+% 
+% %% 8. 绘制完整的系统选型分析曲线图
+% figure('Name', '全系统4电机全面选型曲线图', 'Position', [100, 50, 1200, 800]);
+% 
+% subplot(3,2,1);
+% plot(t, v_slide, 'r', 'LineWidth', 2);
+% title('滑块直线速度需求 (解析解)'); xlabel('时间 (s)'); ylabel('速度 (m/s)'); grid on;
+% 
+% subplot(3,2,2);
+% plot(t, omega_L1_deg/6, 'b', t, omega_L2_deg/6, 'b--', t, omega_R1_deg/6, 'g', t, omega_R2_deg/6, 'g--', 'LineWidth', 1.5);
+% title('全车4关节电机转速对比 (gradient中心差分)'); xlabel('时间 (s)'); ylabel('转速 (RPM)');
+% legend('L1 大腿', 'L2 小腿', 'R1 大腿', 'R2 小腿'); grid on;
+% 
+% subplot(3,2,3);
+% plot(t, torque_slide_motor, 'r', 'LineWidth', 2);
+% title('滑轨驱动电机瞬时扭矩'); xlabel('时间 (s)'); ylabel('扭矩 (N·m)'); grid on;
+% 
+% subplot(3,2,4);
+% plot(t, torque_L1, 'b', t, torque_L2, 'b--', t, torque_R1, 'g', t, torque_R2, 'g--', 'LineWidth', 1.5);
+% title('4关节电机瞬时扭矩对比 (全耦合动力学)'); xlabel('时间 (s)'); ylabel('扭矩 (N·m)');
+% legend('L1 大腿', 'L2 小腿', 'R1 大腿', 'R2 小腿'); grid on;
+% 
+% subplot(3,2,5);
+% plot(t, torque_slide_motor .* omega_slide_motor, 'r', 'LineWidth', 2);
+% title('滑轨电机机械功率'); xlabel('时间 (s)'); ylabel('功率 (W)'); grid on;
+% 
+% subplot(3,2,6);
+% plot(t, abs(torque_L1 .* omega_L1), 'b', t, abs(torque_L2 .* omega_L2), 'b--', t, abs(torque_R1 .* omega_R1), 'g', t, abs(torque_R2 .* omega_R2), 'g--', 'LineWidth', 1.5);
+% title('4关节电机轴向功率对比 (全耦合动力学)'); xlabel('时间 (s)'); ylabel('功率 (W)');
+% legend('L1 大腿', 'L2 小腿', 'R1 大腿', 'R2 小腿'); grid on;
+% 
+% %% 9. 最终选型峰值打印报告
+% fprintf('══════════════════════════════════════════════════════\n');
+% fprintf(' Part 1: 全系统 4 电机选型数据报告 (全耦合动力学)\n');
+% fprintf('══════════════════════════════════════════════════════\n');
+% fprintf('【左腿 L1 电机 (大腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_L1_deg))/6, max(abs(torque_L1))*1000, max(abs(torque_L1.*omega_L1)));
+% fprintf('【左腿 L2 电机 (小腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_L2_deg))/6, max(abs(torque_L2))*1000, max(abs(torque_L2.*omega_L2)));
+% fprintf('【右腿 R1 电机 (大腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_R1_deg))/6, max(abs(torque_R1))*1000, max(abs(torque_R1.*omega_R1)));
+% fprintf('【右腿 R2 电机 (小腿)】 -> 最大转速: %5.2f RPM | 峰值扭矩: %6.2f mN·m | 峰值功率: %.2f W\n', max(abs(omega_R2_deg))/6, max(abs(torque_R2))*1000, max(abs(torque_R2.*omega_R2)));
+% 
+% %% 10. 滑轨与丝杠副工程选型指标核心解算
+% fprintf('\n══════════════════════════════════════════════════════\n');
+% fprintf(' Part 2: 滑轨与传动系统工程选型核心指标报告\n');
+% fprintf('══════════════════════════════════════════════════════\n');
+% 
+% stroke_bow = max(x_slide_t) - min(x_slide_t);
+% L_slider_hardware = L_hold + 0.06;
+% safety_margin = 0.04 * 2;
+% L_rail_min = stroke_bow + L_slider_hardware + safety_margin;
+% 
+% mu_rail = 0.005;
+% F_axial_all = m_slider * a_slide ...
+%             + mu_rail * (m_slider * g + abs(F_base_L_y + F_base_R_y)) ...
+%             + (F_base_L_x + F_base_R_x);
+% F_axial_peak = max(abs(F_axial_all));
+% 
+% My_moment_all = zeros(1, num_steps);
+% for i = 1:num_steps
+%     F_y_L_curr = F_base_L_y(i);
+%     F_y_R_curr = F_base_R_y(i);
+%     My_moment_all(i) = F_y_L_curr * (-L_hold/2) + F_y_R_curr * (L_hold/2);
+% end
+% My_moment_peak = max(abs(My_moment_all));
+% 
+% Mx_moment_all = F_base_L_x * (-L_hold/2) + F_base_R_x * (L_hold/2);
+% Mx_moment_peak = max(abs(Mx_moment_all));
+% 
+% max_v_slide = max(abs(v_slide));
+% max_n_screw = (max_v_slide / Lead_slide) * 60;
+% 
+% fprintf('【1. 几何尺寸指标】\n');
+% fprintf('   * 纯运弓有效行程 (Stroke):       %5.2f mm\n', stroke_bow * 1000);
+% fprintf('   * 建议滑轨最小物理总长 (Length):  %5.2f mm\n', L_rail_min * 1000);
+% 
+% fprintf('\n【2. 滚珠丝杠副选型核心参数】\n');
+% fprintf('   * 轴向峰值动态推力 (Peak Force):  %5.2f N\n', F_axial_peak);
+% fprintf('   * 丝杠峰值运转转速 (Peak Speed):  %5.2f RPM\n', max_n_screw);
+% 
+% fprintf('\n【3. 直线导轨动态力矩负载】\n');
+% fprintf('   * 峰值动态颠覆力矩 My (Pitching): %5.2f N·m\n', My_moment_peak);
+% fprintf('   * 峰值动态扭转力矩 Mx (Rolling):  %5.2f N·m\n', Mx_moment_peak);

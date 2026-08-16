@@ -75,6 +75,10 @@ class BinaryViolinEventEncoder:
         packets: list[bytes] = []
         bow_engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=result.meta.tempo))
 
+        # 先对整首曲子运行弓向决策器，得到每个音符的决策，
+        # 这样编码时可以做前向/后向看位（例如把 legato 标记放到前一个包上，
+        # 告知接收端“当前包之后不要回到弓头”）。
+        decisions = []
         for index, note in enumerate(result.notes):
             beat_position = self._compute_beat_position(note.start, result.meta.tempo)
             decision = bow_engine.decide(
@@ -83,12 +87,27 @@ class BinaryViolinEventEncoder:
                 explicit_legato=note.is_legato,
                 is_first_note=(index == 0),
             )
+            decisions.append(decision)
+
+        for index, note in enumerate(result.notes):
+            decision = decisions[index]
+            # 如果下一个音符被判为连奏且弓向相同，则在当前包上也设置 legato 标记，
+            # 告知接收端不要在两个包之间回到弓头。
+            next_is_legato = False
+            if index + 1 < len(decisions):
+                nxt = decisions[index + 1]
+                if nxt.is_legato and nxt.bow_direction == decision.bow_direction:
+                    next_is_legato = True
+
+            is_legato_for_packet = decision.is_legato or next_is_legato
+
             packets.append(
                 self.encode_note(
                     note=note,
                     bow_direction=decision.bow_direction,
-                    is_legato=decision.is_legato,
+                    is_legato=is_legato_for_packet,
                     needs_reset_bow=decision.needs_reset_bow,
+                    bow_speed=decision.bow_speed,
                 )
             )
 
@@ -105,6 +124,7 @@ class BinaryViolinEventEncoder:
         bow_direction: int,
         is_legato: bool,
         needs_reset_bow: bool = False,
+        bow_speed: int | None = None,
     ) -> bytes:
         """把单个音符编码成一个 12 字节数据包。
 
@@ -126,8 +146,9 @@ class BinaryViolinEventEncoder:
             | (self._uint3(note.finger, "finger") << 3) # 手指左移 3 位，放到中间 3 位
             | self._uint3(note.position, "position")    # 把位放在最低 3 位
         )
-        # 字节7：最高 1 位放弓方向，低 7 位放弓速。
-        bow = (bow_direction << 7) | self._uint7(self.default_bow_speed, "bow_speed")
+        # 字节7：最高 1 位放弓方向，低 7 位放弓速。优先使用传入的 per-note 值，否则退回到默认。
+        use_speed = self.default_bow_speed if bow_speed is None else bow_speed
+        bow = (bow_direction << 7) | self._uint7(use_speed, "bow_speed")
         # 字节8：弓压（整字节）。
         bow_force = self._uint8(self.default_bow_force, "bow_force")
         # 字节9/10：演奏法标记和预留位。
