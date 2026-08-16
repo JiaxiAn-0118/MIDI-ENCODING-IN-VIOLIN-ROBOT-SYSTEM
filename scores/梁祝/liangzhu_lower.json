@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "liangzhu_lower",
+    "title": "梁祝_lower",
     "tempo": 63.0,
     "source_midi": "scores/梁祝/liangzhu_lower.mid",
     "note_count": 67
@@ -19,7 +19,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 1.736111,
@@ -34,7 +34,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 2.450397,
@@ -49,7 +49,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 2.688492,
@@ -64,7 +64,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 3.402778,
@@ -79,7 +79,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 3.640873,
@@ -93,7 +93,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "up"
     },
     {
@@ -124,7 +124,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 4.593254,
@@ -139,7 +139,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 5.30754,
@@ -154,7 +154,7 @@
       "is_string_change": false,
       "is_position_change": true,
       "is_legato": false,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 5.545635,
@@ -168,7 +168,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": true,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "down"
     },
     {
@@ -183,8 +183,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 6.021826,
@@ -199,7 +199,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 6.259921,
@@ -214,7 +214,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 6.498016,
@@ -228,7 +228,7 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "down"
     },
     {
@@ -288,7 +288,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "up"
     },
     {
@@ -319,7 +319,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 11.021826,
@@ -334,7 +334,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 11.259921,
@@ -349,7 +349,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 11.736112,
@@ -363,7 +363,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "down"
     },
     {
@@ -468,8 +468,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 16.021826,
@@ -484,7 +484,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 16.736112,
@@ -514,7 +514,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 17.450398,
@@ -528,7 +528,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "down"
     },
     {
@@ -543,8 +543,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 18.164683,
@@ -559,7 +559,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 18.402779,
@@ -573,8 +573,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "up"
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 19.83135,
@@ -603,8 +603,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "up"
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 20.307541,
@@ -618,7 +618,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "up"
     },
     {
@@ -633,8 +633,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "up"
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 21.021826,
@@ -649,7 +649,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 21.259922,
@@ -664,7 +664,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 21.498017,
@@ -678,8 +678,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "up"
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 21.736112,
@@ -693,8 +693,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 23.640874,
@@ -709,7 +709,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 24.35516,
@@ -724,7 +724,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 24.593255,
@@ -813,8 +813,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 26.974208,
@@ -829,7 +829,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 27.212303,
@@ -844,7 +844,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "down"
+      "bow_direction": "up"
     },
     {
       "start": 27.450398,
@@ -858,7 +858,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "up"
     },
     {
@@ -874,7 +874,7 @@
       "is_string_change": true,
       "is_position_change": false,
       "is_legato": false,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 29.35516,
@@ -948,8 +948,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 30.545636,
@@ -963,7 +963,7 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": true,
+      "is_legato": false,
       "bow_direction": "down"
     },
     {
@@ -1008,8 +1008,8 @@
       "velocity": 80,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true,
-      "bow_direction": "down"
+      "is_legato": false,
+      "bow_direction": "up"
     }
   ]
 }

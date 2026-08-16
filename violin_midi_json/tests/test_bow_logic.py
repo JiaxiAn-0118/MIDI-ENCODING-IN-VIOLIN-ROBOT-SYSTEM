@@ -31,6 +31,44 @@ def test_bow_constants_are_instrument_correct():
     assert BOW_UP == 1
 
 
+def test_first_note_weak_start_prefers_up_bow(note_factory):
+    engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0, implicit_legato_detection=True))
+    note = note_factory(0.0, 0.2, 60, string="D")
+    decision = engine.decide(note, beat_position=0.3, explicit_legato=False, is_first_note=True)
+    assert decision.bow_direction == BOW_UP
+
+
+def test_legato_keeps_previous_direction_for_same_string(note_factory):
+    engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0, implicit_legato_detection=True))
+    prev = note_factory(0.0, 0.2, 60, string="D")
+    nxt = note_factory(0.22, 0.42, 62, string="D")
+
+    engine.previous_note = prev
+    engine.previous_direction = BOW_DOWN
+    decision = engine.decide(nxt, beat_position=0.5, explicit_legato=False, is_first_note=False)
+
+    assert decision.bow_direction == BOW_DOWN
+    assert decision.is_legato is True
+
+
+def test_same_direction_run_breaks_after_three_short_non_legato_notes(note_factory):
+    engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0, implicit_legato_detection=True))
+    notes = [
+        note_factory(0.0, 0.2, 60, string="D"),
+        note_factory(0.5, 0.7, 62, string="D"),
+        note_factory(0.9, 1.1, 64, string="D"),
+        note_factory(1.3, 1.5, 67, string="D"),
+    ]
+
+    engine.previous_note = notes[2]
+    engine.previous_direction = BOW_DOWN
+    engine.direction_history = [BOW_DOWN, BOW_DOWN, BOW_DOWN]
+    engine.current_bow_position = 0.5
+
+    decision = engine.decide(notes[3], beat_position=0.75, explicit_legato=False, is_first_note=False)
+    assert decision.bow_direction == BOW_UP
+
+
 def test_strong_beat_handles_float_edge_case(note_factory):
     engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0))
     assert engine._is_strong_beat(3.9999999999999995) is True
@@ -44,6 +82,34 @@ def test_legato_allows_adjacent_string_crossing(note_factory):
     engine.previous_note = prev
     engine.previous_direction = BOW_DOWN
     assert engine._detect_legato(nxt) is True
+
+
+def test_string_change_without_legato_uses_practical_violin_rule(note_factory):
+    engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0, implicit_legato_detection=True))
+    prev = note_factory(0.0, 0.18, 76, string="E")
+    nxt = note_factory(0.20, 0.38, 71, string="A")
+
+    engine.previous_note = prev
+    engine.previous_direction = BOW_DOWN
+    decision = engine.decide(nxt, beat_position=0.5, explicit_legato=False, is_first_note=False)
+
+    assert decision.bow_direction == BOW_UP
+    assert decision.is_legato is False
+
+
+def test_long_note_at_end_of_bow_forces_retake_on_next_strong_beat(note_factory):
+    engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0, implicit_legato_detection=True))
+    prev = note_factory(0.0, 0.9, 62, string="D")
+    nxt = note_factory(0.95, 1.05, 64, string="D")
+
+    engine.previous_note = prev
+    engine.previous_direction = BOW_DOWN
+    engine.current_bow_position = 0.9
+
+    decision = engine.decide(nxt, beat_position=0.0, explicit_legato=False, is_first_note=False)
+
+    assert decision.bow_direction == BOW_UP
+    assert decision.needs_reset_bow is False
 
 
 def test_seconds_to_ticks_clamps_negative_small_offset():

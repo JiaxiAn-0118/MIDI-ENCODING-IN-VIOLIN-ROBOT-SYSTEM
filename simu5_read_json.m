@@ -1,4 +1,4 @@
-clear; clc; close all;
+o aiclear; clc; close all;
 
 %% 1. 机械几何尺寸与质量参数 (两腿完全对称平衡)
 L1 = 0.10;        % 大腿长度 (m) (由 L1/R1 电机直接驱动)

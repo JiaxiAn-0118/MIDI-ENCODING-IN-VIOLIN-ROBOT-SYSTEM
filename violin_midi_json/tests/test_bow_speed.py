@@ -50,3 +50,15 @@ def test_legato_preserves_direction_and_reduces_speed():
     assert d2.needs_reset_bow is False
     # legato path reduces speed by 1 at minimum
     assert d2.bow_speed <= d1.bow_speed
+
+
+def test_long_sustained_note_reverses_bow_direction():
+    engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=120.0))
+    first = make_note(0.0, 0.25)
+    second = make_note(0.26, 1.26)
+
+    d1 = engine.decide(first, beat_position=0.0, explicit_legato=False, is_first_note=True)
+    d2 = engine.decide(second, beat_position=0.5, explicit_legato=True, is_first_note=False)
+
+    assert d1.bow_direction != d2.bow_direction
+    assert d2.needs_reset_bow is False

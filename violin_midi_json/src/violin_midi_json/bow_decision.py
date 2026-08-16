@@ -52,6 +52,7 @@ class BowDecisionEngine:
         self.current_bow_position = 0.0
         self.previous_note: Optional[ConvertedNote] = None
         self.previous_direction = BOW_DOWN
+        self.direction_history: list[int] = []
 
     def decide(
         self,
@@ -60,23 +61,52 @@ class BowDecisionEngine:
         explicit_legato: bool = False,
         is_first_note: bool = False,
     ) -> BowDecision:
-        """根据当前音符和拍位，返回应当传给编码器的 BowDecision。"""
+        """根据当前音符和拍位，返回应当传给编码器的 BowDecision。
+
+        实际小提琴习惯中，延长音/长音不能简单地沿用上一弓段的方向，
+        需要在行程接近尾端或持续时间过长时换向；短连音才保留同方向。
+        """
         is_strong_beat = self._is_strong_beat(beat_position)
-        is_legato = explicit_legato
-        if not is_legato and self.options.implicit_legato_detection:
-            is_legato = self._detect_legato(note)
+        sustained_note_forces_change = self._should_force_direction_change(note)
 
-        if is_legato:
-            direction = self.previous_direction
+        if sustained_note_forces_change and self.previous_note is not None:
+            direction = BOW_UP if self.previous_direction == BOW_DOWN else BOW_DOWN
+            is_legato = False
+            needs_reset_bow = False
         else:
-            direction = self._decide_direction(note, is_strong_beat, is_first_note)
+            is_legato = explicit_legato
+            if self.previous_note is not None and note.string != self.previous_note.string and not explicit_legato:
+                is_legato = False
+            elif not is_legato and self.options.implicit_legato_detection:
+                is_legato = self._detect_legato(note)
 
-        needs_reset_bow = self._needs_bow_reset(direction)
-        if needs_reset_bow:
-            direction = BOW_UP if direction == BOW_DOWN else BOW_DOWN
+            if self.previous_note is not None and note.string != self.previous_note.string and not is_legato:
+                direction = self._decide_string_change_direction(note)
+                needs_reset_bow = False
+            elif is_legato:
+                direction = self.previous_direction
+                needs_reset_bow = False
+            else:
+                direction = self._decide_direction(note, is_strong_beat, is_first_note)
+                if is_first_note and not is_strong_beat:
+                    direction = BOW_UP
+                if self._should_break_same_direction_run(direction, note):
+                    direction = BOW_UP if direction == BOW_DOWN else BOW_DOWN
+                    is_legato = False
+                    needs_reset_bow = False
+                if self._should_retake_for_bow_exhaustion(direction, is_strong_beat):
+                    direction = BOW_UP if direction == BOW_DOWN else BOW_DOWN
+                    needs_reset_bow = False
+                else:
+                    needs_reset_bow = self._needs_bow_reset(direction)
+                    if needs_reset_bow:
+                        direction = BOW_UP if direction == BOW_DOWN else BOW_DOWN
 
         self.previous_direction = direction
         self.previous_note = note
+        self.direction_history.append(direction)
+        if len(self.direction_history) > 8:
+            self.direction_history = self.direction_history[-8:]
         self.current_bow_position = self._update_bow_position(direction, note)
 
         bow_speed = self._compute_bow_speed(note, is_legato, direction)
@@ -117,6 +147,9 @@ class BowDecisionEngine:
         if self.previous_note is None:
             return False
 
+        if self._is_long_sustain(note) or self._is_long_sustain(self.previous_note):
+            return False
+
         time_gap = note.start - self.previous_note.end
         interval = abs(note.pitch - self.previous_note.pitch)
 
@@ -131,11 +164,44 @@ class BowDecisionEngine:
             if string_diff > 1:
                 return False
 
-        return (
-            time_gap <= self.options.legato_gap_seconds
-            and interval <= self.options.legato_max_interval
-            and (same_string or string_diff == 1)
-        )
+        if not (time_gap <= self.options.legato_gap_seconds and interval <= self.options.legato_max_interval):
+            return False
+
+        # Same-string slur must preserve the current bow direction for musical continuity.
+        if same_string:
+            return True
+
+        return string_diff == 1
+
+    def _should_break_same_direction_run(self, direction: int, note: ConvertedNote) -> bool:
+        if self.previous_note is None:
+            return False
+
+        if note.string != self.previous_note.string:
+            return False
+
+        if self._is_long_sustain(note) or self._is_long_sustain(self.previous_note):
+            return False
+
+        recent = list(self.direction_history)
+        recent.append(self.previous_direction)
+        recent_window = recent[-3:]
+        if len(recent_window) >= 3 and all(d == direction for d in recent_window):
+            return True
+
+        if len(recent) >= 4 and recent[-4] == direction and recent[-3] == direction and recent[-2] == direction:
+            return True
+
+        return False
+
+    def _is_long_sustain(self, note: ConvertedNote) -> bool:
+        quarter_sec = 60.0 / self.options.tempo_bpm
+        return note.duration >= quarter_sec * 1.25
+
+    def _should_force_direction_change(self, note: ConvertedNote) -> bool:
+        if self.previous_note is None:
+            return False
+        return self._is_long_sustain(note) or self._is_long_sustain(self.previous_note)
 
     def _decide_direction(
         self,
@@ -152,6 +218,26 @@ class BowDecisionEngine:
         if self._should_force_down_after_rest(note, is_strong_beat):
             return BOW_DOWN
         return BOW_DOWN if is_strong_beat else BOW_UP
+
+    def _decide_string_change_direction(self, note: ConvertedNote) -> int:
+        """换弦时的自然弓向：高弦到低弦通常上弓，低弦到高弦通常下弓。
+
+        这符合小提琴手的机械惯性：从高音弦落到低音弦更容易顺着抬臂动作
+        配合上弓，而从低音弦抬到高音弦更容易跟随落臂重力配合下弓。
+        """
+        if self.previous_note is None:
+            return self.previous_direction
+
+        prev_index = STRING_ORDER.get(self.previous_note.string)
+        curr_index = STRING_ORDER.get(note.string)
+        if prev_index is None or curr_index is None:
+            return self.previous_direction
+
+        if prev_index > curr_index:
+            return BOW_UP
+        if prev_index < curr_index:
+            return BOW_DOWN
+        return self.previous_direction
 
     def _long_note_threshold(self) -> float:
         quarter_sec = 60.0 / self.options.tempo_bpm
@@ -171,7 +257,22 @@ class BowDecisionEngine:
         quarter_sec = 60.0 / self.options.tempo_bpm
         return rest_gap >= quarter_sec * 0.75
 
+    def _should_retake_for_bow_exhaustion(self, direction: int, is_strong_beat: bool) -> bool:
+        if not is_strong_beat:
+            return False
+        if self.previous_note is None:
+            return False
+        if self.current_bow_position < 0.75:
+            return False
+        if direction == BOW_DOWN and self.previous_direction == BOW_DOWN:
+            return True
+        if direction == BOW_UP and self.previous_direction == BOW_UP:
+            return True
+        return False
+
     def _needs_bow_reset(self, direction: int) -> bool:
+        if self.previous_note is None:
+            return False
         if direction == BOW_DOWN and self.current_bow_position > 0.85:
             return True
         if direction == BOW_UP and self.current_bow_position < 0.15:
