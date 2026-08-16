@@ -49,7 +49,7 @@ State_Points = {P_G, P_GD, P_D, P_DA, P_A, P_AE, P_E};
 State_Angles = deg2rad([28, 14, 5, 0, -5, -14, -28]);
 State_Names  = {'G单音', 'G-D双音', 'D单音', 'D-A双音', 'A单音', 'A-E双音', 'E单音'};
 
-%% 3. 运弓动作定义（从二进制 .bin 文件动态读入 - 含自动诊断防错版）
+%% 3. 运弓动作定义（连续状态积分与行程动态分配）
 bin_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/Violin_GitHub/MIDI-ENCODING-IN-VIOLIN-ROBOT-SYSTEM/scores/梁祝/liangzhu_lower.bin'; % 请确认 bin 文件的实际相对或绝对路径[cite: 2]
 
 if ~exist(bin_path, 'file')
@@ -116,7 +116,7 @@ for n = 1:packet_count
     notes(n).note_name = sprintf('%s_%03d', notes(n).string, pitch(n));
 end
 
-% ---------- 把相邻的 legato 同方向音符合并成段（segment） ----------
+% ---------- 合并同弓向连续音段 (Segments) ----------
 segments = struct('start', {}, 'end', {}, 'direction', {}, 'note_idx', {});
 if ~isempty(notes)
     i_note = 1;
@@ -124,7 +124,12 @@ if ~isempty(notes)
         s_idx = i_note;
         s_dir = notes(i_note).direction;
         e_idx = i_note;
-        while (e_idx + 1) <= length(notes) && isfield(notes(e_idx+1), 'is_legato') && notes(e_idx+1).is_legato && notes(e_idx+1).direction == s_dir
+        % 仅在同方向、显式连音、未要求 reset 且时间连续时合并
+        while (e_idx + 1) <= length(notes) && ...
+              notes(e_idx + 1).direction == s_dir && ...
+              notes(e_idx + 1).is_legato && ...
+              ~notes(e_idx + 1).needs_reset && ...
+              (notes(e_idx + 1).start - notes(e_idx).end) <= legato_gap_tol
             e_idx = e_idx + 1;
         end
         seg.start = notes(s_idx).start;
@@ -203,11 +208,20 @@ a_slide_t = zeros(1, num_steps);
 F_N_t = zeros(1, num_steps);
 current_state_idx = zeros(1, num_steps);
 
-% --- 换弓平滑关键参数 ---
+% --- 运弓轨迹关键参数 ---
 stroke_limit = 0.12;       % 单次最大运弓半行程 (m)
-T_bow_blend = 0.05;        % 换弓缓冲时间 (s)
+legato_gap_tol = 0.02;     % 连音合并时允许的最大时间间隙 (s)
 
 last_valid_note_idx = 1;
+
+% --- 连续滑块轨迹规划 ---
+% 以“上一段结束时的真实位置”作为下一段起点，避免位置跳变
+if ~isempty(segments) && segments(1).direction == -1
+    x_prev = stroke_limit;
+else
+    x_prev = -stroke_limit;
+end
+active_seg_idx = 0;
 
 for i = 1:num_steps
     t_curr = t(i);
@@ -242,66 +256,48 @@ for i = 1:num_steps
     theta_bow_target(i) = th_target;
     F_N_t(i) = 1.5 + (curr_note.velocity / 127) * 3.0;
 
-    % 基于合并后的 legato 段生成 S 型轨迹（段内连续），否则逐音符轨迹
-    seg_found = false;
-    for s = 1:length(segments)
-        if t_curr >= segments(s).start && t_curr <= segments(s).end
-            seg = segments(s);
-            seg_found = true;
-            break;
-        end
+    % 轨迹规划：按时间顺序推进 segment，段间保持连续位置
+    while active_seg_idx < length(segments) && t_curr > segments(active_seg_idx + 1).end
+        active_seg_idx = active_seg_idx + 1;
     end
 
-    if seg_found
-        seg_start = seg.start;
-        seg_end = seg.end;
-        T_seg = max(seg_end - seg_start, 1e-4);
-        tau = (t_curr - seg_start) / T_seg;
-        tau = max(min(tau, 1), 0);
+    if active_seg_idx < length(segments) && t_curr >= segments(active_seg_idx + 1).start
+        seg = segments(active_seg_idx + 1);
 
+        % 进入新段时，以上一时刻位置作为段起点
+        x_start = x_prev;
         if seg.direction == 1
-            x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
+            x_end = stroke_limit;
         else
-            x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
+            x_end = -stroke_limit;
         end
 
-        Delta_x = x_end_raw - x_start_raw;
-        poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
-        x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
-        s_prime = 30 * tau^2 * (1 - tau)^2;
-        v_slide_t(i) = Delta_x * s_prime / T_seg;
-        s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
-        a_slide_t(i) = Delta_x * s_double / (T_seg^2);
-    else
-        note_start = curr_note.start;
-        note_end = curr_note.end;
-        T_note = max(note_end - note_start, 1e-4);
-        if isfield(curr_note, 'direction') && curr_note.direction == 1
-            x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
-        elseif isfield(curr_note, 'direction') && curr_note.direction == -1
-            x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
-        else
-            if mod(note_idx, 2) == 1
-                x_start_raw = -stroke_limit; x_end_raw = stroke_limit;
-            else
-                x_start_raw = stroke_limit; x_end_raw = -stroke_limit;
-            end
-        end
-        tau = (t_curr - note_start) / T_note;
+        seg_duration = max(seg.end - seg.start, 1e-4);
+        tau = (t_curr - seg.start) / seg_duration;
         tau = max(min(tau, 1), 0);
-        Delta_x = x_end_raw - x_start_raw;
+
         poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
-        x_slide_t(i) = x_start_raw + Delta_x * poly_factor;
+        x_slide_t(i) = x_start + (x_end - x_start) * poly_factor;
+
         s_prime = 30 * tau^2 * (1 - tau)^2;
-        v_slide_t(i) = Delta_x * s_prime / T_note;
+        v_slide_t(i) = (x_end - x_start) * s_prime / seg_duration;
         s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
-        a_slide_t(i) = Delta_x * s_double / (T_note^2);
+        a_slide_t(i) = (x_end - x_start) * s_double / (seg_duration^2);
+
+        x_prev = x_slide_t(i);
+    else
+        % 音符间隙：保持上一时刻滑块位置，避免未定义跳变
+        x_slide_t(i) = x_prev;
+        v_slide_t(i) = 0;
+        a_slide_t(i) = 0;
     end
 end
 
 % 对换弦角度进行高斯平滑
 theta_bow_t = smoothdata(theta_bow_target, 'gaussian', 15);
-theta_bow_t(end) = theta_bow_t(end-1);
+if num_steps > 1
+    theta_bow_t(end) = theta_bow_t(end-1);
+end
 
 %% 4. 铰接约束逆解 (左右双腿五杆闭环核心机构解析)
 num_steps = length(t);
