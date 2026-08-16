@@ -117,6 +117,7 @@ for n = 1:packet_count
 end
 
 % ---------- 合并同弓向连续音段 (Segments) ----------
+legato_gap_tol = 0.02;     % 连音合并时允许的最大时间间隙 (s)
 segments = struct('start', {}, 'end', {}, 'direction', {}, 'note_idx', {});
 if ~isempty(notes)
     i_note = 1;
@@ -210,7 +211,6 @@ current_state_idx = zeros(1, num_steps);
 
 % --- 运弓轨迹关键参数 ---
 stroke_limit = 0.12;       % 单次最大运弓半行程 (m)
-legato_gap_tol = 0.02;     % 连音合并时允许的最大时间间隙 (s)
 
 last_valid_note_idx = 1;
 
