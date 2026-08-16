@@ -65,10 +65,27 @@ class ConvertedNote:
     is_string_change: bool    # 相对上一个音是否需要"换弦"（机械臂要提前准备）
     is_position_change: bool  # 相对上一个音是否需要"换把位"（左手要滑动）
     is_legato: bool            # 是否可连奏（同一弓段继续，不必换弓向）
+    bow_direction: str | None = None  # 最终决策出的弓向："down" / "up"（调试和 JSON 输出使用）
 
     def to_dict(self) -> dict[str, Any]:
         """把自己转成字典，方便最终写成 JSON 文件。"""
-        return asdict(self)
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "duration": self.duration,
+            "pitch": self.pitch,
+            "note_name": self.note_name,
+            "string": self.string,
+            "position": self.position,
+            "finger": self.finger,
+            "velocity": self.velocity,
+            "is_string_change": bool(self.is_string_change),
+            "is_position_change": bool(self.is_position_change),
+            "is_legato": bool(self.is_legato),
+        }
+        if self.bow_direction is not None:
+            data["bow_direction"] = self.bow_direction
+        return data
 
 
 @dataclass(frozen=True)

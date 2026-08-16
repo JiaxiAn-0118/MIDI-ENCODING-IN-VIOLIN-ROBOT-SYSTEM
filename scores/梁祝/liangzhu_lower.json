@@ -18,7 +18,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 1.736111,
@@ -32,7 +33,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 2.450397,
@@ -46,7 +48,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 2.688492,
@@ -60,7 +63,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 3.402778,
@@ -74,7 +78,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 3.640873,
@@ -88,7 +93,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 3.878968,
@@ -102,7 +108,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 4.117064,
@@ -116,7 +123,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 4.593254,
@@ -130,7 +138,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 5.30754,
@@ -144,7 +153,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": true,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 5.545635,
@@ -158,7 +168,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": true,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 5.78373,
@@ -172,7 +183,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 6.021826,
@@ -186,7 +198,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 6.259921,
@@ -200,7 +213,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 6.498016,
@@ -214,7 +228,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 8.402778,
@@ -228,7 +243,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 8.878969,
@@ -242,7 +258,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 9.117064,
@@ -256,7 +273,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 9.355159,
@@ -270,7 +288,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 9.83135,
@@ -284,7 +303,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 10.30754,
@@ -298,7 +318,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 11.021826,
@@ -312,7 +333,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 11.259921,
@@ -326,7 +348,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 11.736112,
@@ -340,7 +363,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 12.212302,
@@ -354,7 +378,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 12.688493,
@@ -368,7 +393,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 13.164683,
@@ -382,7 +408,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 13.402778,
@@ -396,7 +423,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 13.640874,
@@ -410,7 +438,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 13.878969,
@@ -424,7 +453,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 14.117064,
@@ -438,7 +468,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 16.021826,
@@ -452,7 +483,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 16.736112,
@@ -466,7 +498,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 16.974207,
@@ -480,7 +513,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "down"
     },
     {
       "start": 17.450398,
@@ -494,7 +528,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 17.926588,
@@ -508,7 +543,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 18.164683,
@@ -522,7 +558,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 18.402779,
@@ -536,7 +573,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 19.83135,
@@ -550,7 +588,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 20.188493,
@@ -564,7 +603,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 20.307541,
@@ -578,7 +618,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 20.783731,
@@ -592,7 +633,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 21.021826,
@@ -606,7 +648,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 21.259922,
@@ -620,7 +663,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 21.498017,
@@ -634,7 +678,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 21.736112,
@@ -648,7 +693,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 23.640874,
@@ -662,7 +708,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 24.35516,
@@ -676,7 +723,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 24.593255,
@@ -690,7 +738,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 25.069446,
@@ -704,7 +753,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 25.545636,
@@ -718,7 +768,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 26.021827,
@@ -732,7 +783,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 26.259922,
@@ -746,7 +798,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 26.498017,
@@ -760,7 +813,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 26.974208,
@@ -774,7 +828,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 27.212303,
@@ -788,7 +843,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 27.450398,
@@ -802,7 +858,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 28.402779,
@@ -816,7 +873,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 29.35516,
@@ -830,7 +888,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": false,
+      "bow_direction": "up"
     },
     {
       "start": 29.712303,
@@ -844,7 +903,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 29.831351,
@@ -858,7 +918,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 30.069446,
@@ -872,7 +933,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 30.307541,
@@ -886,7 +948,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 30.545636,
@@ -900,7 +963,8 @@
       "velocity": 64,
       "is_string_change": true,
       "is_position_change": false,
-      "is_legato": false
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 30.783732,
@@ -914,7 +978,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 31.021827,
@@ -928,7 +993,8 @@
       "velocity": 64,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 31.259922,
@@ -942,7 +1008,8 @@
       "velocity": 80,
       "is_string_change": false,
       "is_position_change": false,
-      "is_legato": true
+      "is_legato": true,
+      "bow_direction": "down"
     }
   ]
 }

@@ -10,6 +10,7 @@ from .constants import (
     BOW_UP,
     DEFAULT_LEGATO_GAP_SECONDS,
     DEFAULT_LEGATO_MAX_INTERVAL,
+    STRING_ORDER,
 )
 from .models import ConvertedNote
 
@@ -86,21 +87,36 @@ class BowDecisionEngine:
         )
 
     def _is_strong_beat(self, beat_position: float) -> bool:
-        beat_in_bar = beat_position % float(self.options.beats_per_bar)
+        beat_in_bar = round(beat_position % float(self.options.beats_per_bar), 4)
+        if beat_in_bar >= self.options.beats_per_bar:
+            beat_in_bar = 0.0
         strong_positions = [0.0]
         if self.options.beats_per_bar >= 4:
             strong_positions.append(2.0)
-        return any(abs(beat_in_bar - p) < 1e-6 for p in strong_positions)
+        return any(abs(beat_in_bar - p) < 1e-4 for p in strong_positions)
 
     def _detect_legato(self, note: ConvertedNote) -> bool:
         if self.previous_note is None:
             return False
+
         time_gap = note.start - self.previous_note.end
         interval = abs(note.pitch - self.previous_note.pitch)
+
+        same_string = note.string == self.previous_note.string
+        string_diff = 0
+        if not same_string:
+            prev_index = STRING_ORDER.get(self.previous_note.string)
+            curr_index = STRING_ORDER.get(note.string)
+            if prev_index is None or curr_index is None:
+                return False
+            string_diff = abs(curr_index - prev_index)
+            if string_diff > 1:
+                return False
+
         return (
-            note.string == self.previous_note.string
-            and time_gap <= self.options.legato_gap_seconds
+            time_gap <= self.options.legato_gap_seconds
             and interval <= self.options.legato_max_interval
+            and (same_string or string_diff == 1)
         )
 
     def _decide_direction(
@@ -147,7 +163,7 @@ class BowDecisionEngine:
     def _update_bow_position(self, direction: int, note: ConvertedNote) -> float:
         quarter_sec = 60.0 / self.options.tempo_bpm
         delta = note.duration / quarter_sec
-        delta = min(max(delta * 0.25, 0.05), 0.25)
+        delta = min(max(delta * 0.25, 0.01), 0.25)
         if direction == BOW_DOWN:
             return min(1.0, self.current_bow_position + delta)
         return max(0.0, self.current_bow_position - delta)

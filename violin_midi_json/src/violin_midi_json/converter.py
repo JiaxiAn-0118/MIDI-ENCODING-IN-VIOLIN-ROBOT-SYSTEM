@@ -17,11 +17,13 @@
 """
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Optional, Union
 
 from .binary_encoder import BinaryViolinEventEncoder
-from .constants import DEFAULT_LEGATO_GAP_SECONDS, DEFAULT_LEGATO_MAX_INTERVAL
+from .bow_decision import BowDecisionEngine, BowDecisionOptions
+from .constants import BOW_DOWN, DEFAULT_LEGATO_GAP_SECONDS, DEFAULT_LEGATO_MAX_INTERVAL
 from .mapping import ViolinPitchMapper
 from .midi_parser import MidiParser
 from .models import ConversionMeta, ConversionResult, ConvertedNote
@@ -80,7 +82,24 @@ class MidiToJsonConverter:
             converted_notes.append(converted)
             previous_note = converted  # 记住本音，供下一个音做比较
 
-        # ③ 汇总曲子元信息（曲名/速度/来源/音符数）。
+        # ③ 用与二进制编码一致的弓向决策器，计算最终的 legato / bow_direction，
+        #    这样 JSON 和 .bin 的输出语义保持一致，不再停留在 all-false 的中间态。
+        bow_engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=tempo))
+        for index, note in enumerate(converted_notes):
+            beat_position = note.start / (60.0 / tempo)
+            decision = bow_engine.decide(
+                note=note,
+                beat_position=beat_position,
+                explicit_legato=note.is_legato,
+                is_first_note=(index == 0),
+            )
+            converted_notes[index] = replace(
+                note,
+                is_legato=decision.is_legato,
+                bow_direction="down" if decision.bow_direction == BOW_DOWN else "up",
+            )
+
+        # ④ 汇总曲子元信息（曲名/速度/来源/音符数）。
         meta = ConversionMeta(
             title=title or Path(midi_path).stem,  # 没给曲名就用文件名
             tempo=round(tempo, 3),

@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from .bow_decision import BowDecisionEngine, BowDecisionOptions
+from .constants import BOW_DOWN, BOW_UP
 from .models import ConversionResult, ConvertedNote
 
 
@@ -47,12 +48,9 @@ STRING_IDS = {
     "E": 3,
 }
 
-# 运弓方向：拉弓（向琴尖方向）=0，推弓（向琴马方向）=1。
-BOW_UP = 0
-BOW_DOWN = 1
-
-# Flags 字节中的连奏标志。
+# Flags 字节中的演奏法标志。
 LEGATO_FLAG = 0x04
+RESET_BOW_FLAG = 0x08
 
 
 class BinaryViolinEventEncoder:
@@ -90,6 +88,7 @@ class BinaryViolinEventEncoder:
                     note=note,
                     bow_direction=decision.bow_direction,
                     is_legato=decision.is_legato,
+                    needs_reset_bow=decision.needs_reset_bow,
                 )
             )
 
@@ -100,13 +99,20 @@ class BinaryViolinEventEncoder:
         """编码后直接写入 .bin 文件（这个文件就是给 Arduino 用的曲谱）。"""
         Path(output_path).write_bytes(self.encode_result(result))
 
-    def encode_note(self, note: ConvertedNote, bow_direction: int, is_legato: bool) -> bytes:
+    def encode_note(
+        self,
+        note: ConvertedNote,
+        bow_direction: int,
+        is_legato: bool,
+        needs_reset_bow: bool = False,
+    ) -> bytes:
         """把单个音符编码成一个 12 字节数据包。
 
         参数:
-            note:         选好指法的音符（ConvertedNote）。
-            bow_direction: 当前音符应使用的弓向（0=拉弓，1=推弓）。
-            is_legato:     这个音符是否判定为连奏。
+            note:           选好指法的音符（ConvertedNote）。
+            bow_direction: 当前音符应使用的弓向（0=下弓/拉弓，1=上弓/推弓）。
+            is_legato:      这个音符是否判定为连奏。
+            needs_reset_bow: 是否需要强制离弓重置。
         """
         # —— 先把"人能理解的值"换算成"协议需要的数字" ——
         tick = self._seconds_to_ticks(note.start, "start")           # 开始时间（秒→tick）
@@ -125,7 +131,11 @@ class BinaryViolinEventEncoder:
         # 字节8：弓压（整字节）。
         bow_force = self._uint8(self.default_bow_force, "bow_force")
         # 字节9/10：演奏法标记和预留位。
-        flags = LEGATO_FLAG if is_legato else 0
+        flags = 0
+        if is_legato:
+            flags |= LEGATO_FLAG
+        if needs_reset_bow:
+            flags |= RESET_BOW_FLAG
         reserved = 0
 
         # —— 按 12 字节布局拼装数据包正文（前 11 字节）——
@@ -151,7 +161,8 @@ class BinaryViolinEventEncoder:
 
     def _seconds_to_ticks(self, seconds: float, field_name: str) -> int:
         """把秒数换算成 tick 数（除以 0.01 并四舍五入），并检查是否超出 16 位范围。"""
-        value = round(seconds / self.tick_seconds)
+        safe_seconds = max(0.0, seconds)
+        value = round(safe_seconds / self.tick_seconds)
         if not 0 <= value <= 0xFFFF:
             raise ValueError(f"{field_name} {seconds} s is outside uint16 tick range")
         return value
