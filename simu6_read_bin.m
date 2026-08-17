@@ -117,7 +117,7 @@ for n = 1:packet_count
 end
 
 % ---------- 合并同弓向连续音段 (Segments) ----------
-legato_gap_tol = 0.02;     % 连音合并时允许的最大时间间隙 (s)
+motion_gap_tol = 0.08;     % 运弓连续性判定阈值：同方向且时间间隙小于该值则视为同一运弓段
 segments = struct('start', {}, 'end', {}, 'direction', {}, 'note_idx', {});
 if ~isempty(notes)
     i_note = 1;
@@ -125,12 +125,11 @@ if ~isempty(notes)
         s_idx = i_note;
         s_dir = notes(i_note).direction;
         e_idx = i_note;
-        % 仅在同方向、显式连音、未要求 reset 且时间连续时合并
+          % 轨迹合并优先保证运动连续性；RESET_BOW_FLAG 仍可强制断段
         while (e_idx + 1) <= length(notes) && ...
               notes(e_idx + 1).direction == s_dir && ...
-              notes(e_idx + 1).is_legato && ...
               ~notes(e_idx + 1).needs_reset && ...
-              (notes(e_idx + 1).start - notes(e_idx).end) <= legato_gap_tol
+              (notes(e_idx + 1).start - notes(e_idx).end) <= motion_gap_tol
             e_idx = e_idx + 1;
         end
         seg.start = notes(s_idx).start;
@@ -211,17 +210,26 @@ current_state_idx = zeros(1, num_steps);
 
 % --- 运弓轨迹关键参数 ---
 stroke_limit = 0.12;       % 单次最大运弓半行程 (m)
+stroke_margin = 0.01;      % 软边界余量，避免频繁顶到机械端点
+nominal_bow_speed = 0.08;  % 标称运弓速度 (m/s)
+center_pull_gain = 0.35;   % 每个段对中心位置的回拉系数
+min_seg_move = 0.004;      % 单段最小位移，避免极短段完全不动
+x_min = -stroke_limit + stroke_margin;
+x_max = stroke_limit - stroke_margin;
 
 last_valid_note_idx = 1;
 
 % --- 连续滑块轨迹规划 ---
 % 以“上一段结束时的真实位置”作为下一段起点，避免位置跳变
 if ~isempty(segments) && segments(1).direction == -1
-    x_prev = stroke_limit;
+    x_prev = x_max;
 else
-    x_prev = -stroke_limit;
+    x_prev = x_min;
 end
 active_seg_idx = 0;
+planned_seg_idx = -1;
+seg_x_start = x_prev;
+seg_x_end = x_prev;
 
 for i = 1:num_steps
     t_curr = t(i);
@@ -262,27 +270,41 @@ for i = 1:num_steps
     end
 
     if active_seg_idx < length(segments) && t_curr >= segments(active_seg_idx + 1).start
-        seg = segments(active_seg_idx + 1);
+        curr_seg_idx = active_seg_idx + 1;
+        seg = segments(curr_seg_idx);
+        seg_duration = max(seg.end - seg.start, 1e-4);
 
-        % 进入新段时，以上一时刻位置作为段起点
-        x_start = x_prev;
-        if seg.direction == 1
-            x_end = stroke_limit;
-        else
-            x_end = -stroke_limit;
+        % 段起点/终点仅在进入新段时初始化一次，避免每个采样点重复重规划
+        if curr_seg_idx ~= planned_seg_idx
+            seg_x_start = x_prev;
+
+            % 折中策略：按段时长分配位移，并增加轻微回中项，避免短段冲到端点后停顿
+            dx_nominal = seg.direction * nominal_bow_speed * seg_duration;
+            dx_center = -center_pull_gain * seg_x_start;
+            dx_plan = dx_nominal + dx_center;
+
+            if seg.direction == 1
+                dx_plan = max(dx_plan, min_seg_move);
+                dx_plan = min(dx_plan, x_max - seg_x_start);
+            else
+                dx_plan = min(dx_plan, -min_seg_move);
+                dx_plan = max(dx_plan, x_min - seg_x_start);
+            end
+
+            seg_x_end = seg_x_start + dx_plan;
+            planned_seg_idx = curr_seg_idx;
         end
 
-        seg_duration = max(seg.end - seg.start, 1e-4);
         tau = (t_curr - seg.start) / seg_duration;
         tau = max(min(tau, 1), 0);
 
         poly_factor = 10*tau^3 - 15*tau^4 + 6*tau^5;
-        x_slide_t(i) = x_start + (x_end - x_start) * poly_factor;
+        x_slide_t(i) = seg_x_start + (seg_x_end - seg_x_start) * poly_factor;
 
         s_prime = 30 * tau^2 * (1 - tau)^2;
-        v_slide_t(i) = (x_end - x_start) * s_prime / seg_duration;
+        v_slide_t(i) = (seg_x_end - seg_x_start) * s_prime / seg_duration;
         s_double = 60 * tau * (1 - tau) * (1 - 2*tau);
-        a_slide_t(i) = (x_end - x_start) * s_double / (seg_duration^2);
+        a_slide_t(i) = (seg_x_end - seg_x_start) * s_double / (seg_duration^2);
 
         x_prev = x_slide_t(i);
     else
@@ -292,6 +314,16 @@ for i = 1:num_steps
         a_slide_t(i) = 0;
     end
 end
+
+% 对位移轨迹做轻度平滑，再统一求导，减少段切换处的速度顿挫
+if num_steps >= 7
+    x_slide_t = smoothdata(x_slide_t, 'sgolay', 7);
+elseif num_steps >= 3
+    x_slide_t = smoothdata(x_slide_t, 'movmean', 3);
+end
+x_slide_t = min(max(x_slide_t, x_min), x_max);
+v_slide_t = gradient(x_slide_t, dt);
+a_slide_t = gradient(v_slide_t, dt);
 
 % 对换弦角度进行高斯平滑
 theta_bow_t = smoothdata(theta_bow_target, 'gaussian', 15);
