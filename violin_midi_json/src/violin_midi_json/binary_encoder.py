@@ -15,7 +15,7 @@
     字节6   String/Finger  一个字节里塞了 3 个信息：弦/手指/把位（见下方位运算）
     字节7   Bow            一个字节里塞了 2 个信息：弓方向/弓速
     字节8   Force          弓的压力力度
-    字节9   Flags          演奏法标记（揉弦/连奏/断奏…，目前固定为 0）
+    字节9   Flags          演奏/控制标记（如连奏、reset_bow、断奏等）
     字节10  Reserved       预留（目前固定为 0，留给将来扩展）
     字节11  Checksum       校验和：前 11 个字节相加取低 8 位，用来检查传输有没有出错
 
@@ -48,9 +48,11 @@ STRING_IDS = {
     "E": 3,
 }
 
-# Flags 字节中的演奏法标志。
+# Flags 字节中的标志位。
 LEGATO_FLAG = 0x04
 RESET_BOW_FLAG = 0x08
+# staccato 已迁移到 bit6（0x40），当前编码器尚未主动写入该位，预留给后续扩展。
+STACCATO_FLAG = 0x40
 
 
 class BinaryViolinEventEncoder:
@@ -151,7 +153,7 @@ class BinaryViolinEventEncoder:
         bow = (bow_direction << 7) | self._uint7(use_speed, "bow_speed")
         # 字节8：弓压（整字节）。
         bow_force = self._uint8(self.default_bow_force, "bow_force")
-        # 字节9/10：演奏法标记和预留位。
+        # 字节9/10：标记位和预留位。
         flags = 0
         if is_legato:
             flags |= LEGATO_FLAG

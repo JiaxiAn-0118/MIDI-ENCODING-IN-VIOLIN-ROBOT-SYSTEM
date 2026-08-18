@@ -219,10 +219,10 @@ Byte 9 = Flags
 | 0   | vibrato   | 1 = 启用揉弦      |
 | 1   | glissando | 1 = 启用滑音      |
 | 2   | legato    | 1 = 连奏        |
-| 3   | staccato  | 1 = 断奏        |
+| 3   | reset_bow | 1 = 强制重置弓段 / 重新起弓 |
 | 4   | accent    | 1 = 重音        |
 | 5   | tremolo   | 1 = 震弓 / 快速重复 |
-| 6   | reserved  | 保留            |
+| 6   | staccato  | 1 = 断奏        |
 | 7   | reserved  | 保留            |
 
 ### 4.1 Flags 示例
@@ -251,10 +251,16 @@ legato：
 00000100 = 0x04
 ```
 
-staccato：
+reset_bow：
 
 ```text
 00001000 = 0x08
+```
+
+staccato：
+
+```text
+01000000 = 0x40
 ```
 
 vibrato + legato：
@@ -319,6 +325,7 @@ typedef struct {
     uint8_t vibrato;
     uint8_t glissando;
     uint8_t legato;
+    uint8_t reset_bow;
     uint8_t staccato;
     uint8_t accent;
     uint8_t tremolo;
@@ -358,9 +365,10 @@ bool decodeViolinEvent(const ViolinEventPacket* pkt, ViolinEvent* evt) {
     evt->vibrato   = (pkt->flags >> 0) & 0x01;
     evt->glissando = (pkt->flags >> 1) & 0x01;
     evt->legato    = (pkt->flags >> 2) & 0x01;
-    evt->staccato  = (pkt->flags >> 3) & 0x01;
+    evt->reset_bow = (pkt->flags >> 3) & 0x01;
     evt->accent    = (pkt->flags >> 4) & 0x01;
     evt->tremolo   = (pkt->flags >> 5) & 0x01;
+    evt->staccato  = (pkt->flags >> 6) & 0x01;
 
     return true;
 }
