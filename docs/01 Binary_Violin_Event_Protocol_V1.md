@@ -44,7 +44,7 @@ V1 采用 **12 字节固定长度 packet**。
 | 4-5  |      Duration |   2 | uint16   | 持续时间，单位 tick        |
 | 6    | String/Finger |   1 | bitfield | 弦选择 + 手指编号 + 把位     |
 | 7    |           Bow |   1 | bitfield | 弓方向 + 弓速            |
-| 8    |         Force |   1 | uint8    | 弓压力度                |
+| 8    |         Force |   1 | uint8    | 弓压力度（当前实现直接承载原始 MIDI velocity） |
 | 9    |         Flags |   1 | bitfield | articulation / 扩展标志 |
 | 10   |      Reserved |   1 | uint8    | 预留扩展                |
 | 11   |      Checksum |   1 | uint8    | 校验和                 |
@@ -196,7 +196,7 @@ bits 6-0: bow_speed
 11~127 = 预留扩展
 ```
 
-### 3.8 bow_force 定义
+### 3.8 bow_force / velocity 定义
 
 - 范围：`0 ~ 255`
 
@@ -205,7 +205,8 @@ bits 6-0: bow_speed
 ```text
 0 = no pressure
 1~10 = 常用力度等级
-11~255 = 扩展
+11~127 = 常见 MIDI velocity 范围
+128~255 = 扩展
 ```
 
 ---

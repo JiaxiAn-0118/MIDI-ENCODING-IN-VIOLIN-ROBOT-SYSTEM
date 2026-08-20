@@ -119,6 +119,34 @@ def test_seconds_to_ticks_clamps_negative_small_offset():
     assert enc._seconds_to_ticks(-0.001, "start") == 0
 
 
+def test_binary_encoder_uses_note_velocity_in_force_byte():
+    from violin_midi_json.binary_encoder import BinaryViolinEventEncoder
+    from violin_midi_json.models import ConvertedNote, ConversionMeta, ConversionResult
+
+    note = ConvertedNote(
+        start=0.0,
+        end=0.2,
+        duration=0.2,
+        pitch=62,
+        note_name="D4",
+        string="D",
+        position=1,
+        finger=0,
+        velocity=64,
+        is_string_change=False,
+        is_position_change=False,
+        is_legato=False,
+        bow_direction="down",
+    )
+    result = ConversionResult(
+        meta=ConversionMeta(title="mini", tempo=120.0, source_midi="mini.mid", note_count=1),
+        notes=[note],
+    )
+
+    packet = BinaryViolinEventEncoder().encode_result(result)
+    assert packet[8] == 64
+
+
 def test_converter_sets_final_legato_and_bow_direction(tmp_path):
     import pretty_midi
 

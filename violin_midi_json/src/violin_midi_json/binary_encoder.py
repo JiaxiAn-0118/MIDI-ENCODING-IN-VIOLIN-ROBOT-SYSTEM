@@ -14,7 +14,7 @@
     字节4-5 Duration       持续时长（uint16，单位 tick，低字节在前）
     字节6   String/Finger  一个字节里塞了 3 个信息：弦/手指/把位（见下方位运算）
     字节7   Bow            一个字节里塞了 2 个信息：弓方向/弓速
-    字节8   Force          弓的压力力度
+    字节8   Force          弓的压力力度（当前直接承载原始 MIDI velocity）
     字节9   Flags          演奏/控制标记（如连奏、reset_bow、断奏等）
     字节10  Reserved       预留（目前固定为 0，留给将来扩展）
     字节11  Checksum       校验和：前 11 个字节相加取低 8 位，用来检查传输有没有出错
@@ -93,15 +93,10 @@ class BinaryViolinEventEncoder:
 
         for index, note in enumerate(result.notes):
             decision = decisions[index]
-            # 如果下一个音符被判为连奏且弓向相同，则在当前包上也设置 legato 标记，
-            # 告知接收端不要在两个包之间回到弓头。
-            next_is_legato = False
-            if index + 1 < len(decisions):
-                nxt = decisions[index + 1]
-                if nxt.is_legato and nxt.bow_direction == decision.bow_direction:
-                    next_is_legato = True
-
-            is_legato_for_packet = decision.is_legato or next_is_legato
+            # 这里直接把当前音符自己的 legato 结果写进 packet。
+            # packet 级别不再回填“下一音”的连奏状态，保证解码后的 notes
+            # 与 JSON 路径中的 notes 逐项一致。
+            is_legato_for_packet = decision.is_legato
 
             packets.append(
                 self.encode_note(
@@ -151,8 +146,8 @@ class BinaryViolinEventEncoder:
         # 字节7：最高 1 位放弓方向，低 7 位放弓速。优先使用传入的 per-note 值，否则退回到默认。
         use_speed = self.default_bow_speed if bow_speed is None else bow_speed
         bow = (bow_direction << 7) | self._uint7(use_speed, "bow_speed")
-        # 字节8：弓压（整字节）。
-        bow_force = self._uint8(self.default_bow_force, "bow_force")
+        # 字节8：直接携带原始 MIDI velocity，确保 JSON / BIN 两条链路的力度语义一致。
+        bow_force = self._uint8(note.velocity, "velocity")
         # 字节9/10：标记位和预留位。
         flags = 0
         if is_legato:

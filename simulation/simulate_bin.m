@@ -42,11 +42,9 @@ State_Angles = deg2rad([28, 14, 5, 0, -5, -14, -28]);
 State_Names  = {'G单音', 'G-D双音', 'D单音', 'D-A双音', 'A单音', 'A-E双音', 'E单音'};
 
 %% 3. 运弓动作定义（连续状态积分与行程动态分配）
-json_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/Violin_GitHub/MIDI-ENCODING-IN-VIOLIN-ROBOT-SYSTEM/scores/梁祝/liangzhu_lower.json';
+bin_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/Violin_GitHub/MIDI-ENCODING-IN-VIOLIN-ROBOT-SYSTEM/scores/梁祝/liangzhu_lower.bin';
 
-raw_str = fileread(json_path);
-score_data = jsondecode(raw_str);
-notes = score_data.notes;
+notes = decode_bin_to_notes(bin_path);
 
 % 规范化方向与连音标记
 for n = 1:length(notes)
@@ -433,92 +431,38 @@ omega_R1_deg = rad2deg(omega_R1);
 omega_R2_deg = rad2deg(omega_R2);
 
 %% 7. 动态双腿同步演奏仿真动画（含视频导出）- 修复残影与越界版
-fig = figure('Name', '双闭环平行双曲柄狗腿同步演奏仿真', 'Position', [50, 80, 1100, 700]);
+anim = struct();
+anim.video_filename = 'violin_simulation.mp4';
+anim.draw_step = 2;
+anim.fs = fs;
+anim.t = t;
+anim.x_slide_t = x_slide_t;
+anim.theta_bow_t = theta_bow_t;
+anim.current_string_t = current_string_t;
+anim.H_slide = H_slide;
+anim.L_hold = L_hold;
+anim.r_crank = r_crank;
+anim.motor_L2_rad = motor_L2_rad;
+anim.motor_R2_rad = motor_R2_rad;
+anim.P_knee_L_all = P_knee_L_all;
+anim.P_hinge_L_all = P_hinge_L_all;
+anim.P_knee_R_all = P_knee_R_all;
+anim.P_hinge_R_all = P_hinge_R_all;
+anim.L_bow = L_bow;
+anim.Strings = Strings;
+anim.String_Names = String_Names;
+anim.current_state_idx = current_state_idx;
+anim.notes = notes;
+anim.omega_L1_deg = omega_L1_deg;
+anim.omega_L2_deg = omega_L2_deg;
+anim.omega_R1_deg = omega_R1_deg;
+anim.omega_R2_deg = omega_R2_deg;
+anim.torque_L1 = torque_L1;
+anim.torque_L2 = torque_L2;
+anim.torque_R1 = torque_R1;
+anim.torque_R2 = torque_R2;
 
-video_filename = 'violin_simulation.mp4';
-v = VideoWriter(video_filename, 'MPEG-4');
-draw_step = 2;
-v.FrameRate = fs / draw_step; 
-v.Quality = 95;
-open(v);
-
-fprintf('正在生成并录制仿真视频，请稍候...\n');
-
-for i = 1:draw_step:length(t)
-    % --- 【关键修复 1】彻底清空上一帧画板，并重置 hold 状态 ---
-    clf(fig); 
-    ax = axes('Parent', fig);
-    hold(ax, 'on'); 
-    
-    x_s = x_slide_t(i); 
-    th_b = theta_bow_t(i); 
-    P_contact = current_string_t(:, i);
-    R_matrix = [cos(th_b), -sin(th_b); sin(th_b), cos(th_b)];
-    
-    % 1. 导轨与滑块
-    plot(ax, [-0.6, 0.6], [H_slide, H_slide], 'k--', 'LineWidth', 1.5);
-    slider_w = L_hold + 0.06;
-    rectangle(ax, 'Position', [x_s - slider_w/2, H_slide, slider_w, 0.02], 'FaceColor', [0.7 0.7 0.7]);
-    
-    % 2. 绘制左腿 (L1, L2)
-    P_base_L = [x_s - L_hold/2; H_slide]; P_knee_L = P_knee_L_all(:, i); P_hinge_L = P_hinge_L_all(:, i);
-    plot(ax, [P_base_L(1), P_knee_L(1)], [P_base_L(2), P_knee_L(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
-    P_crank_end_L = P_base_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
-    plot(ax, [P_base_L(1), P_crank_end_L(1)], [P_base_L(2), P_crank_end_L(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
-    P_knee_jig_L = P_knee_L + [r_crank*cos(motor_L2_rad(i)); r_crank*sin(motor_L2_rad(i))];
-    plot(ax, [P_crank_end_L(1), P_knee_jig_L(1)], [P_crank_end_L(2), P_knee_jig_L(2)], 'm--', 'LineWidth', 1.5);
-    plot(ax, [P_knee_L(1), P_hinge_L(1)], [P_knee_L(2), P_hinge_L(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
-    
-    % 3. 绘制右腿 (R1, R2)
-    P_base_R = [x_s + L_hold/2; H_slide]; P_knee_R = P_knee_R_all(:, i); P_hinge_R = P_hinge_R_all(:, i);
-    plot(ax, [P_base_R(1), P_knee_R(1)], [P_base_R(2), P_knee_R(2)], 'b-o', 'LineWidth', 3, 'MarkerFaceColor','b');
-    P_crank_end_R = P_base_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
-    plot(ax, [P_base_R(1), P_crank_end_R(1)], [P_base_R(2), P_crank_end_R(2)], 'r-o', 'LineWidth', 4, 'MarkerFaceColor','r');
-    P_knee_jig_R = P_knee_R + [r_crank*cos(motor_R2_rad(i)); r_crank*sin(motor_R2_rad(i))];
-    plot(ax, [P_crank_end_R(1), P_knee_jig_R(1)], [P_crank_end_R(2), P_knee_jig_R(2)], 'm--', 'LineWidth', 1.5);
-    plot(ax, [P_knee_R(1), P_hinge_R(1)], [P_knee_R(2), P_hinge_R(2)], 'g-o', 'LineWidth', 2.5, 'MarkerFaceColor','g');
-    
-    % 4. 绘制琴弓与琴弦
-    P_bow_left = P_contact + R_matrix * [-L_bow/2 + x_s; 0]; 
-    P_bow_right = P_contact + R_matrix * [L_bow/2 + x_s; 0];
-    plot(ax, [P_bow_left(1), P_bow_right(1)], [P_bow_left(2), P_bow_right(2)], 'Color', [0.85 0.5 0], 'LineWidth', 3);
-    
-    plot(ax, P_hinge_L(1), P_hinge_L(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    plot(ax, P_hinge_R(1), P_hinge_R(2), 'ko', 'MarkerSize', 8, 'MarkerFaceColor', 'y');
-    plot(ax, Strings(1,:), Strings(2,:), 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
-    
-    for s = 1:4
-        text(ax, Strings(1,s)-0.015, Strings(2,s)-0.03, String_Names{s}, 'FontWeight', 'bold');
-    end
-    plot(ax, P_contact(1), P_contact(2), 'mx', 'MarkerSize', 15, 'LineWidth', 3);
-    
-    % --- 【关键修复 2】强制锁定坐标轴与裁剪超出画框的线条 ---
-    axis(ax, 'equal'); 
-    xlim(ax, [-0.5, 0.5]); 
-    ylim(ax, [-0.5, 0.5]); 
-    grid(ax, 'on');
-    
-    data_str = {
-        sprintf('时间: %.2f s | 音符: %s (%s弦)', t(i), notes(current_state_idx(i)).note_name, notes(current_state_idx(i)).string), ...
-        sprintf('L1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_L1_deg(i)/6), abs(torque_L1(i)*1000)), ...
-        sprintf('L2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_L2_deg(i)/6), abs(torque_L2(i)*1000)), ...
-        sprintf('R1大腿: %5.1f RPM | %5.1f mN·m', abs(omega_R1_deg(i)/6), abs(torque_R1(i)*1000)), ...
-        sprintf('R2小腿: %5.1f RPM | %5.1f mN·m', abs(omega_R2_deg(i)/6), abs(torque_R2(i)*1000))
-    };
-    text(ax, -0.48, 0.36, data_str, 'FontSize', 9, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'FontName', 'Courier');
-    title(ax, '全系统平衡：4关节双曲柄狗腿动力学与压弦监测');
-    xlabel(ax, 'X方向 (m)'); ylabel(ax, 'Y方向 (m)');
-    
-    % --- 【关键修复 3】刷新并安全捕获当前帧 ---
-    drawnow limitrate; % 提高绘制效率
-    frame = getframe(fig);
-    writeVideo(v, frame);
-    
-    hold(ax, 'off'); % 结束当前帧绘制
-end
-
-close(v);
-fprintf('视频已成功保存！\n');
+render_violin_animation(anim);
 
 %% 8. 绘制完整的系统选型分析曲线图 (包含全部 4 个关节电机负载)
 figure('Name', '全系统4电机全面选型曲线图', 'Position', [100, 50, 1200, 800]);
