@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Sequence
 
 from .constants import (
     BOW_DOWN,
@@ -60,6 +60,7 @@ class BowDecisionEngine:
         beat_position: float,
         explicit_legato: bool = False,
         is_first_note: bool = False,
+        lookahead_notes: Sequence[ConvertedNote] = (),
     ) -> BowDecision:
         """根据当前音符和拍位，返回应当传给编码器的 BowDecision。
 
@@ -90,6 +91,10 @@ class BowDecisionEngine:
                 direction = self._decide_direction(note, is_strong_beat, is_first_note)
                 if is_first_note and not is_strong_beat:
                     direction = BOW_UP
+                if self._should_start_weak_pickup(note, beat_position, lookahead_notes):
+                    direction = BOW_UP
+                if self._should_prepare_for_rest(note, lookahead_notes):
+                    direction = BOW_DOWN
                 if self._should_break_same_direction_run(direction, note):
                     direction = BOW_UP if direction == BOW_DOWN else BOW_DOWN
                     is_legato = False
@@ -119,6 +124,37 @@ class BowDecisionEngine:
             bow_speed=bow_speed,
             beat_position=beat_position,
         )
+
+    def decide_all(
+        self,
+        notes: Sequence[ConvertedNote],
+        lookahead_size: int = 2,
+    ) -> list[BowDecision]:
+        """按顺序决策整段音符，并向每个决策提供有限的未来窗口。"""
+        if lookahead_size < 0:
+            raise ValueError("lookahead_size must be non-negative")
+
+        self.current_bow_position = 0.0
+        self.previous_note = None
+        self.previous_direction = BOW_DOWN
+        self.direction_history = []
+
+        note_list = list(notes)
+        quarter_sec = 60.0 / self.options.tempo_bpm
+        decisions: list[BowDecision] = []
+        for index, note in enumerate(note_list):
+            lookahead = note_list[index + 1:index + 1 + lookahead_size]
+            beat_position = note.start / quarter_sec if quarter_sec > 0 else 0.0
+            decisions.append(
+                self.decide(
+                    note=note,
+                    beat_position=beat_position,
+                    explicit_legato=note.is_legato,
+                    is_first_note=index == 0,
+                    lookahead_notes=lookahead,
+                )
+            )
+        return decisions
 
     def _compute_bow_speed(self, note: ConvertedNote, is_legato: bool, direction: int) -> int:
         """基于音符时值和连奏信息，计算一个 1~10 的弓速等级（数值越大越快）。
@@ -256,6 +292,34 @@ class BowDecisionEngine:
         rest_gap = note.start - self.previous_note.end
         quarter_sec = 60.0 / self.options.tempo_bpm
         return rest_gap >= quarter_sec * 0.75
+
+    def _should_start_weak_pickup(
+        self,
+        note: ConvertedNote,
+        beat_position: float,
+        lookahead_notes: Sequence[ConvertedNote],
+    ) -> bool:
+        """弱拍音后紧接强拍时，提前用上弓完成弱起。"""
+        if not lookahead_notes or self._is_strong_beat(beat_position):
+            return False
+        next_note = lookahead_notes[0]
+        next_beat = next_note.start / (60.0 / self.options.tempo_bpm)
+        if not self._is_strong_beat(next_beat):
+            return False
+        quarter_sec = 60.0 / self.options.tempo_bpm
+        return next_note.start - note.end <= quarter_sec * 0.75
+
+    def _should_prepare_for_rest(
+        self,
+        note: ConvertedNote,
+        lookahead_notes: Sequence[ConvertedNote],
+    ) -> bool:
+        """休止前的最后一个音收为下弓，为下一句重新起弓留出空间。"""
+        if not lookahead_notes:
+            return False
+        next_note = lookahead_notes[0]
+        quarter_sec = 60.0 / self.options.tempo_bpm
+        return next_note.start - note.end >= quarter_sec * 0.75
 
     def _should_retake_for_bow_exhaustion(self, direction: int, is_strong_beat: bool) -> bool:
         if not is_strong_beat:

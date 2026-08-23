@@ -82,17 +82,10 @@ class MidiToJsonConverter:
             converted_notes.append(converted)
             previous_note = converted  # 记住本音，供下一个音做比较
 
-        # ③ 用与二进制编码一致的弓向决策器，计算最终的 legato / bow_direction，
-        #    这样 JSON 和 .bin 的输出语义保持一致，不再停留在 all-false 的中间态。
+        # ③ 用与二进制编码一致的弓向决策器批量计算最终的 legato / bow_direction。
         bow_engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=tempo))
-        for index, note in enumerate(converted_notes):
-            beat_position = note.start / (60.0 / tempo)
-            decision = bow_engine.decide(
-                note=note,
-                beat_position=beat_position,
-                explicit_legato=note.is_legato,
-                is_first_note=(index == 0),
-            )
+        decisions = bow_engine.decide_all(converted_notes, lookahead_size=2)
+        for index, (note, decision) in enumerate(zip(converted_notes, decisions)):
             converted_notes[index] = replace(
                 note,
                 is_legato=decision.is_legato,
