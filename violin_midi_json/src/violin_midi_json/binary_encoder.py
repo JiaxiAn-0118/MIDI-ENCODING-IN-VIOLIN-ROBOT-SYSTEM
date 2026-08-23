@@ -77,19 +77,9 @@ class BinaryViolinEventEncoder:
         packets: list[bytes] = []
         bow_engine = BowDecisionEngine(BowDecisionOptions(tempo_bpm=result.meta.tempo))
 
-        # 先对整首曲子运行弓向决策器，得到每个音符的决策，
-        # 这样编码时可以做前向/后向看位（例如把 legato 标记放到前一个包上，
-        # 告知接收端“当前包之后不要回到弓头”）。
-        decisions = []
-        for index, note in enumerate(result.notes):
-            beat_position = self._compute_beat_position(note.start, result.meta.tempo)
-            decision = bow_engine.decide(
-                note=note,
-                beat_position=beat_position,
-                explicit_legato=note.is_legato,
-                is_first_note=(index == 0),
-            )
-            decisions.append(decision)
+        # 与 JSON 转换路径使用同一套批量弓法决策和有限前瞻窗口，
+        # 保证 BIN 中的弓向、连奏和弓速与 JSON 逐项一致。
+        decisions = bow_engine.decide_all(result.notes, lookahead_size=2)
 
         for index, note in enumerate(result.notes):
             decision = decisions[index]
