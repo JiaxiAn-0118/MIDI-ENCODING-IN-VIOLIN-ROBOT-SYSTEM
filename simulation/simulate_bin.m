@@ -42,7 +42,7 @@ State_Angles = deg2rad([28, 14, 5, 0, -5, -14, -28]);
 State_Names  = {'G单音', 'G-D双音', 'D单音', 'D-A双音', 'A单音', 'A-E双音', 'E单音'};
 
 %% 3. 运弓动作定义（连续状态积分与行程动态分配）
-bin_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/Violin_GitHub/MIDI-ENCODING-IN-VIOLIN-ROBOT-SYSTEM/scores/梁祝/liangzhu_lower.bin';
+bin_path = '/Users/anjiaxi/Desktop/Fudan/Projects/Denghui_violin/Violin_GitHub/MIDI-ENCODING-IN-VIOLIN-ROBOT-SYSTEM/scores/梁祝/liangzhu_lower_lookahead.bin';
 
 notes = decode_bin_to_notes(bin_path);
 

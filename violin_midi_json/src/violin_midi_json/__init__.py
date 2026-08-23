@@ -13,6 +13,7 @@
 from .binary_encoder import BinaryViolinEventEncoder   # 把音符编码成 12 字节二进制包
 from .converter import MidiToJsonConverter             # 转换总指挥：串起 解析→映射→编码
 from .models import ConvertedNote, ConversionMeta, ConversionResult, FingeringCandidate, MidiNote  # 各类数据容器
+from .streaming import ActionSink, NoteSource, RealtimePipeline, ViolinAction
 
 # __all__ 列出了"import *"时会导出的名字，相当于这份菜单的正式目录。
 __all__ = [
@@ -23,4 +24,8 @@ __all__ = [
     "ConvertedNote",
     "ConversionMeta",
     "ConversionResult",
+    "ViolinAction",
+    "NoteSource",
+    "ActionSink",
+    "RealtimePipeline",
 ]
