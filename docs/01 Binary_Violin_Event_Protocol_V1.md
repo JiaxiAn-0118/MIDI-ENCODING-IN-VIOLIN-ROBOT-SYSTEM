@@ -88,10 +88,10 @@ V1 采用 **12 字节固定长度 packet**。
 
 - G3 = 55
 - D4 = 62
-- A5 = 69
+- A4 = 69
 - E5 = 76
 - F#5 = 78
-- A6 = 81
+- A5 = 81
 
 #### Duration
 
@@ -180,8 +180,8 @@ bits 6-0: bow_speed
 ### 3.6 bow_direction 定义
 
 ```text
-0 = up bow
-1 = down bow
+0 = down bow (下弓/拉弓)
+1 = up bow (上弓/推弓)
 ```
 
 ### 3.7 bow_speed 定义
@@ -466,7 +466,7 @@ duration = 50 ticks
 string = E = 3
 finger = 0
 position = 1
-bow_direction = down = 1
+bow_direction = down = 0
 bow_speed = 5
 bow_force = 4
 flags = 0
@@ -479,18 +479,20 @@ reserved = 0
 - Tick = `0x00 0x00`
 - MIDI Pitch = `0x51`
 - Duration = `0x32 0x00`
-- String/Finger = `0xD9`
-- Bow = `0x85`
+- String/Finger = `0xC1`
+- Bow = `0x05`
 - Force = `0x04`
 - Flags = `0x00`
 - Reserved = `0x00`
-- Checksum = `0x8A`
+- Checksum = `0xF2`
 
 完整 packet：
 
 ```text
-A5 00 00 51 32 00 D9 85 04 00 00 8A
+A5 00 00 51 32 00 C1 05 04 00 00 F2
 ```
+
+> 说明：示例中的 `bow_speed = 5`、`bow_force = 4` 仅为演示取值；实际编码时 `bow_speed` 由弓法决策器逐音计算（见 3.7），`bow_force` 直接承载该音符的 MIDI velocity（见 3.8）。
 
 ---
 
@@ -499,7 +501,7 @@ A5 00 00 51 32 00 D9 85 04 00 00 8A
 这里采用 A 大调一句：
 
 ```text
-A5 A5 E5 E5 F#5 F#5 E5
+A4 A4 E5 E5 F#5 F#5 E5
 ```
 
 假设：
@@ -516,8 +518,8 @@ A5 A5 E5 E5 F#5 F#5 E5
 
 | 音符  | tick | pitch | string | finger | position | duration |  bow |
 |-----|-----:|------:|-------:|-------:|---------:|---------:|-----:|
-| A5  |    0 |    69 |   2(A) |      0 |        1 |       50 | down |
-| A5  |   50 |    69 |   2(A) |      0 |        1 |       50 |   up |
+| A4  |    0 |    69 |   2(A) |      0 |        1 |       50 | down |
+| A4  |   50 |    69 |   2(A) |      0 |        1 |       50 |   up |
 | E5  |  100 |    76 |   3(E) |      0 |        1 |       50 | down |
 | E5  |  150 |    76 |   3(E) |      0 |        1 |       50 |   up |
 | F#5 |  200 |    78 |   3(E) |      1 |        1 |       50 | down |
@@ -526,46 +528,46 @@ A5 A5 E5 E5 F#5 F#5 E5
 
 ### 9.2 二进制 Packet 示例
 
-#### Event 1: A5
+#### Event 1: A4
 
 ```text
-A5 00 00 45 32 00 D9 85 04 00 00 8A
+A5 00 00 45 32 00 81 05 04 00 00 A6
 ```
 
-#### Event 2: A5
+#### Event 2: A4
 
 ```text
-A5 32 00 45 32 00 D9 05 04 00 00 3C
+A5 32 00 45 32 00 81 85 04 00 00 58
 ```
 
 #### Event 3: E5
 
 ```text
-A5 64 00 4C 32 00 C1 85 04 00 00 D1
+A5 64 00 4C 32 00 C1 05 04 00 00 51
 ```
 
 #### Event 4: E5
 
 ```text
-A5 96 00 4C 32 00 C1 05 04 00 00 83
+A5 96 00 4C 32 00 C1 85 04 00 00 03
 ```
 
 #### Event 5: F#5
 
 ```text
-A5 C8 00 4E 32 00 C9 85 04 00 00 07
+A5 C8 00 4E 32 00 C9 05 04 00 00 BF
 ```
 
 #### Event 6: F#5
 
 ```text
-A5 FA 00 4E 32 00 C9 05 04 00 00 B9
+A5 FA 00 4E 32 00 C9 85 04 00 00 71
 ```
 
 #### Event 7: E5
 
 ```text
-A5 2C 01 4C 64 00 C1 85 04 00 00 CC
+A5 2C 01 4C 64 00 C1 05 04 00 00 4C
 ```
 
 ----
