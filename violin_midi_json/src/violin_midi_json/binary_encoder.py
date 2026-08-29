@@ -32,7 +32,6 @@ from pathlib import Path
 from typing import Optional, Union
 
 from .bow_decision import BowDecisionEngine, BowDecisionOptions
-from .constants import BOW_DOWN, BOW_UP
 from .models import ConversionResult, ConvertedNote
 
 
@@ -62,15 +61,11 @@ class BinaryViolinEventEncoder:
         self,
         tick_seconds: float = TICK_SECONDS,
         default_bow_speed: int = 5,
-        default_bow_force: int = 4,
     ) -> None:
         # tick_seconds: 秒→tick 的换算精度（默认 0.01 秒/tick）。
         self.tick_seconds = tick_seconds
-        # 以下两个是"默认运弓参数"，目前对所有音符统一使用（将来可按音符细调）：
-        #   bow_speed 弓速等级（0~127，常用 1~10）
-        #   bow_force  弓压等级（0~255，常用 1~10）
+        # 默认弓速等级（0~127，常用 1~10），仅在调用方未显式传入 bow_speed 时作为兜底。
         self.default_bow_speed = default_bow_speed
-        self.default_bow_force = default_bow_force
 
     def encode_result(self, result: ConversionResult) -> bytes:
         """把一整首曲子（含多个音符）编码成连续的二进制流。"""
@@ -174,11 +169,6 @@ class BinaryViolinEventEncoder:
         if not 0 <= value <= 0xFFFF:
             raise ValueError(f"{field_name} {seconds} s is outside uint16 tick range")
         return value
-
-    def _compute_beat_position(self, start_seconds: float, tempo_bpm: float) -> float:
-        """把音符开始时间转成小节内拍位（quarter beats）。"""
-        seconds_per_quarter = 60.0 / tempo_bpm
-        return start_seconds / seconds_per_quarter
 
     def _string_id(self, string: str) -> int:
         """把弦名(G/D/A/E)转成协议编号(0~3)。"""

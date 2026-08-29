@@ -23,7 +23,7 @@ from typing import Optional, Union
 
 from .binary_encoder import BinaryViolinEventEncoder
 from .bow_decision import BowDecisionEngine, BowDecisionOptions
-from .constants import BOW_DOWN, DEFAULT_LEGATO_GAP_SECONDS, DEFAULT_LEGATO_MAX_INTERVAL
+from .constants import BOW_DOWN
 from .fingering_planner import GlobalFingeringPlanner
 from .mapping import ViolinPitchMapper
 from .midi_parser import MidiParser
