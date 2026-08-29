@@ -17,16 +17,22 @@ violin_midi_json/
 ├── mapping_algorithm.md
 ├── examples/
 │   └── example_output.json
+├── tests/
 └── src/
     └── violin_midi_json/
         ├── __init__.py
         ├── binary_encoder.py
+        ├── bow_decision.py
         ├── cli.py
+        ├── constants.py
         ├── converter.py
+        ├── fingering_planner.py
         ├── mapping.py
         ├── midi_parser.py
         ├── models.py
-        └── note_utils.py
+        ├── note_utils.py
+        ├── scheduler.py
+        └── streaming.py
 ```
 
 ## 功能
@@ -114,24 +120,21 @@ Byte 10    Reserved
 Byte 11    Checksum = sum(Byte 0..10) & 0xFF
 ```
 
-当前二进制编码的默认弓法策略：
+当前二进制编码的弓法策略（由 `bow_decision.py` 决策，非固定规则）：
 
-- 第一音为下弓，之后上下弓交替
-- `bow_speed = 5`
-- `bow_force = 4`
-- `flags = 0`
+- 弓向、连奏、弓速由 `BowDecisionEngine` 批量决策（最多 2 个未来音符的有限前瞻）
+- `bow_speed`：决策器逐音计算（1~10，长音慢、短音快、连奏偏慢）
+- `bow_force`：直接承载该音符的 MIDI velocity
+- `flags`：按音符设置（连奏 `0x04`、`reset_bow` `0x08` 等）
 
 ## 当前映射策略
 
 当前阶段采用：
 
-- 默认最自然把位策略
-- 优先第一把位
-- 若同音存在多种候选，优先低把位、低手指、自然空弦
+- 全局动态规划（DP）指法规划器 `fingering_planner.py`，全局搜索最低物理代价（换弦/换把）的指法路径
+- 保留 `mapping.py` 的局部默认映射（优先低把位、低手指、自然空弦）作为降级回退
 
 ## 后续可扩展方向
 
-- 同音异弦最优路径选择
-- 基于最小运动的换把优化
-- 连续乐句上下文感知映射
-- 接入机器人控制层事件编码
+- 接入机器人控制层事件编码（实时执行端）
+- 基于听觉反馈的指法/弓法闭环优化

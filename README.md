@@ -26,7 +26,7 @@ MIDI / 曲谱数据 -> 小提琴演奏事件 -> 二进制曲谱 -> Arduino 解�
 进入项目根目录：
 
 ```bash
-cd /Users/mirong/Documents/登辉-小提琴
+cd /path/to/project
 ```
 
 由 MIDI 生成 JSON 调试文件：
@@ -76,7 +76,7 @@ firmware/arduino/test1/test1.ino
 ROS2 串口通信实验说明：
 
 ```text
-docs/ROS2_Arduino通信实验.md
+docs/05 ROS2_Arduino通信实验.md
 ```
 
 GIGA R1 串口接收程序：
@@ -90,5 +90,5 @@ firmware/arduino/giga_serial_bridge/giga_serial_bridge.ino
 从全曲动作规划、弓法生成、声音质量评价，到自动校准、数字孪生和自主练琴的完整构想见：
 
 ```text
-docs/智能化优化方案.md
+docs/11 智能化优化方案.md
 ```
