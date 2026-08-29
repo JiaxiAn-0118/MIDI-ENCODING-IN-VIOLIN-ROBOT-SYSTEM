@@ -32,7 +32,7 @@ cd /path/to/project
 由 MIDI 生成 JSON 调试文件：
 
 ```bash
-PYTHONPATH=violin_midi_json/src .venv/bin/python -m violin_midi_json.cli scores/小星星/小星星完整版.mid scores/小星星/小星星完整版_from_midi.json --format json --title "小星星完整版"
+PYTHONPATH=violin_midi_json/src .venv/bin/python -m violin_midi_json.cli scores/小星星/小星星完整版.mid scores/小星星/小星星完整版.json --format json --title "小星星完整版"
 ```
 
 由 MIDI 生成单片机使用的二进制文件：
