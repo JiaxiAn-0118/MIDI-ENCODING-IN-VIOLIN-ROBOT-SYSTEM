@@ -72,11 +72,11 @@
       "duration": 0.224206,
       "pitch": 69,
       "note_name": "A4",
-      "string": "A",
+      "string": "D",
       "position": 1,
-      "finger": 0,
+      "finger": 4,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
       "is_legato": false,
       "bow_direction": "down"
@@ -91,10 +91,10 @@
       "position": 1,
       "finger": 1,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
-      "bow_direction": "up"
+      "is_legato": true,
+      "bow_direction": "down"
     },
     {
       "start": 3.878968,
@@ -109,7 +109,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 4.117064,
@@ -124,7 +124,7 @@
       "is_string_change": false,
       "is_position_change": false,
       "is_legato": true,
-      "bow_direction": "up"
+      "bow_direction": "down"
     },
     {
       "start": 4.593254,
@@ -162,14 +162,14 @@
       "duration": 0.224206,
       "pitch": 76,
       "note_name": "E5",
-      "string": "E",
+      "string": "A",
       "position": 1,
-      "finger": 0,
+      "finger": 4,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": true,
-      "is_legato": false,
-      "bow_direction": "down"
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 5.78373,
@@ -181,9 +181,9 @@
       "position": 1,
       "finger": 3,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
+      "is_legato": true,
       "bow_direction": "up"
     },
     {
@@ -357,13 +357,13 @@
       "duration": 0.450397,
       "pitch": 69,
       "note_name": "A4",
-      "string": "A",
+      "string": "D",
       "position": 1,
-      "finger": 0,
+      "finger": 4,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
+      "is_legato": true,
       "bow_direction": "down"
     },
     {
@@ -522,14 +522,14 @@
       "duration": 0.450397,
       "pitch": 69,
       "note_name": "A4",
-      "string": "A",
+      "string": "D",
       "position": 1,
-      "finger": 0,
+      "finger": 4,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
-      "bow_direction": "down"
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 17.926588,
@@ -541,9 +541,9 @@
       "position": 1,
       "finger": 1,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
+      "is_legato": true,
       "bow_direction": "up"
     },
     {
@@ -597,14 +597,14 @@
       "duration": 0.111111,
       "pitch": 62,
       "note_name": "D4",
-      "string": "D",
+      "string": "G",
       "position": 1,
-      "finger": 0,
+      "finger": 4,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
-      "bow_direction": "down"
+      "is_legato": true,
+      "bow_direction": "up"
     },
     {
       "start": 20.307541,
@@ -616,9 +616,9 @@
       "position": 1,
       "finger": 2,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
+      "is_legato": true,
       "bow_direction": "up"
     },
     {
@@ -672,13 +672,13 @@
       "duration": 0.224206,
       "pitch": 69,
       "note_name": "A4",
-      "string": "A",
+      "string": "D",
       "position": 1,
-      "finger": 0,
+      "finger": 4,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
-      "is_legato": false,
+      "is_legato": true,
       "bow_direction": "down"
     },
     {
@@ -691,7 +691,7 @@
       "position": 1,
       "finger": 1,
       "velocity": 64,
-      "is_string_change": true,
+      "is_string_change": false,
       "is_position_change": false,
       "is_legato": false,
       "bow_direction": "up"
