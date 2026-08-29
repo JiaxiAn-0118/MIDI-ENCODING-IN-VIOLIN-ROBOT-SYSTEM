@@ -56,9 +56,9 @@ ros2 launch violin_ros_bridge mock_demo.launch.py \
 
 ```text
 Published event=0 tick=0 pitch=69
-ACK count=1 tick=0 pitch=69 duration=50 string=2 finger=0 position=1 bow_dir=1 bow_speed=5 bow_force=4
+ACK count=1 tick=0 pitch=69 duration=50 string=2 finger=0 position=1 bow_dir=0 bow_speed=1 bow_force=90 legato=0 flags=0x00
 Published event=1 tick=50 pitch=69
-ACK count=2 tick=50 pitch=69 duration=50 string=2 finger=0 position=1 bow_dir=0 bow_speed=5 bow_force=4
+ACK count=2 tick=50 pitch=69 duration=50 string=2 finger=0 position=1 bow_dir=0 bow_speed=1 bow_force=90 legato=1 flags=0x04
 ```
 
 《小星星完整版》应输出 35 条 ACK。这个测试不需要串口、不需要开发板，只验证 ROS2 曲谱播放和二进制协议解码是否正确。
@@ -125,7 +125,7 @@ UTM 共享目录的具体路径取决于虚拟机配置。常见挂载点包括 
 GIGA 收到合法事件后会回传：
 
 ```text
-ACK tick=0 pitch=69 string=2 finger=0 position=1
+ACK tick=0 pitch=69 string=2 finger=0 pos=1 bow_dir=0 speed=1 force=90 legato=0
 ```
 
 ## 第二步：在 Ubuntu 中构建 ROS2 工作区
@@ -193,9 +193,9 @@ ros2 launch violin_ros_bridge serial_demo.launch.py \
 
 ```text
 Published event=0 tick=0 pitch=69
-Arduino: ACK tick=0 pitch=69 string=2 finger=0 position=1
+Arduino: ACK tick=0 pitch=69 string=2 finger=0 pos=1 bow_dir=0 speed=1 force=90 legato=0
 Published event=1 tick=50 pitch=69
-Arduino: ACK tick=50 pitch=69 string=2 finger=0 position=1
+Arduino: ACK tick=50 pitch=69 string=2 finger=0 pos=1 bow_dir=0 speed=1 force=90 legato=1
 ```
 
 《小星星完整版》应发送并确认 35 个事件。
