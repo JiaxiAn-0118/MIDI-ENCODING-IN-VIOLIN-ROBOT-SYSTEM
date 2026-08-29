@@ -24,25 +24,33 @@ from typing import Optional, Union
 from .binary_encoder import BinaryViolinEventEncoder
 from .bow_decision import BowDecisionEngine, BowDecisionOptions
 from .constants import BOW_DOWN, DEFAULT_LEGATO_GAP_SECONDS, DEFAULT_LEGATO_MAX_INTERVAL
+from .fingering_planner import GlobalFingeringPlanner
 from .mapping import ViolinPitchMapper
 from .midi_parser import MidiParser
 from .models import ConversionMeta, ConversionResult, ConvertedNote
+from .scheduler import LeadTimeScheduler
 
 
 class MidiToJsonConverter:
-    """MIDI 转换器：协调 解析器 / 指法映射 / 二进制编码 三个零件。"""
+    """MIDI 转换器：协调 解析器 / 指法规划 / 二进制编码 / 时序调度 多个模块。"""
 
     def __init__(
         self,
         parser: Optional[MidiParser] = None,
         mapper: Optional[ViolinPitchMapper] = None,
         binary_encoder: Optional[BinaryViolinEventEncoder] = None,
+        fingering_planner: Optional[GlobalFingeringPlanner] = None,
+        scheduler: Optional[LeadTimeScheduler] = None,
+        use_global_planning: bool = True,
     ) -> None:
         # 如果调用方没指定零件，就用默认实现。这样既能"开箱即用"，
         # 也方便测试时替换成假对象。
         self.parser = parser or MidiParser()
         self.mapper = mapper or ViolinPitchMapper()
         self.binary_encoder = binary_encoder or BinaryViolinEventEncoder()
+        self.fingering_planner = fingering_planner or GlobalFingeringPlanner(self.mapper)
+        self.scheduler = scheduler or LeadTimeScheduler()
+        self.use_global_planning = use_global_planning
 
     def convert(self, midi_path: Union[str, Path], title: Optional[str] = None) -> ConversionResult:
         """把一个 MIDI 文件转换成完整的 ConversionResult（含全部带指法的音符）。
@@ -56,9 +64,13 @@ class MidiToJsonConverter:
         converted_notes: list[ConvertedNote] = []
         previous_note: Optional[ConvertedNote] = None
 
-        # ② 逐个音符挑选默认指法，并顺带判断是否需要换弦/换把位。
-        for note in notes:
-            fingering = self.mapper.choose_default(note.pitch)
+        # ② 指法选择：优先使用 DP 全局指法规划，也可降级为局部默认映射。
+        if self.use_global_planning and notes:
+            planned_fingerings = self.fingering_planner.plan(notes)
+        else:
+            planned_fingerings = [self.mapper.choose_default(n.pitch) for n in notes]
+
+        for note, fingering in zip(notes, planned_fingerings):
             is_string_change = previous_note is not None and previous_note.string != fingering.string
             is_position_change = previous_note is not None and previous_note.position != fingering.position
             is_legato = False

@@ -11,14 +11,23 @@
 
 # 把内部各模块里实现的核心类汇总到这里，对外只暴露这一份"菜单"。
 from .binary_encoder import BinaryViolinEventEncoder   # 把音符编码成 12 字节二进制包
-from .converter import MidiToJsonConverter             # 转换总指挥：串起 解析→映射→编码
+from .converter import MidiToJsonConverter             # 转换总指挥：串起 解析→规划→编码
+from .fingering_planner import FingeringCostWeights, GlobalFingeringPlanner # 全局指法 DP 规划器
 from .models import ConvertedNote, ConversionMeta, ConversionResult, FingeringCandidate, MidiNote  # 各类数据容器
+from .scheduler import ActionType, LeadTimeScheduler, ScheduledAction, SchedulerConfig, TimedNoteSchedule # 时序调度
 from .streaming import ActionSink, NoteSource, RealtimePipeline, ViolinAction
 
 # __all__ 列出了"import *"时会导出的名字，相当于这份菜单的正式目录。
 __all__ = [
     "BinaryViolinEventEncoder",
     "MidiToJsonConverter",
+    "GlobalFingeringPlanner",
+    "FingeringCostWeights",
+    "LeadTimeScheduler",
+    "SchedulerConfig",
+    "ScheduledAction",
+    "ActionType",
+    "TimedNoteSchedule",
     "MidiNote",
     "FingeringCandidate",
     "ConvertedNote",
