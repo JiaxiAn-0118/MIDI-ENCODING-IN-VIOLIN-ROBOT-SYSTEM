@@ -1,8 +1,0 @@
-time,pitch,note,string,finger,position,duration,bow_direction,bow_speed,bow_force
-0.0,69,A5,A,0,1,0.5,down,5,4
-0.5,69,A5,A,0,1,0.5,up,5,4
-1.0,76,E5,E,0,1,0.5,down,5,4
-1.5,76,E5,E,0,1,0.5,up,5,4
-2.0,78,F#5,E,1,1,0.5,down,5,4
-2.5,78,F#5,E,1,1,0.5,up,5,4
-3.0,76,E5,E,0,1,1.0,down,4,4
