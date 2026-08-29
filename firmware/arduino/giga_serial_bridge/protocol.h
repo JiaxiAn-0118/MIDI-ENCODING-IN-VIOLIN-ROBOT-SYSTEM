@@ -18,10 +18,13 @@ constexpr size_t PACKET_SIZE = 12;
 constexpr uint8_t BOW_DIR_PULL = 0; // 0 = 拉弓 (Down-bow)
 constexpr uint8_t BOW_DIR_PUSH = 1; // 1 = 推弓 (Up-bow)
 
-constexpr uint8_t FLAG_VIBRATO = 0x01; // 揉弦
-constexpr uint8_t FLAG_STACCATO = 0x02; // 断奏
-constexpr uint8_t FLAG_LEGATO = 0x04;  // 连奏
-constexpr uint8_t FLAG_ACCENT = 0x08;  // 重音
+constexpr uint8_t FLAG_VIBRATO = 0x01;    // 揉弦 (bit0)
+constexpr uint8_t FLAG_GLISSANDO = 0x02;  // 滑音 (bit1)
+constexpr uint8_t FLAG_LEGATO = 0x04;     // 连奏 (bit2)
+constexpr uint8_t FLAG_RESET_BOW = 0x08;  // 强制重置弓段/重新起弓 (bit3)
+constexpr uint8_t FLAG_ACCENT = 0x10;     // 重音 (bit4)
+constexpr uint8_t FLAG_TREMOLO = 0x20;    // 震弓 (bit5)
+constexpr uint8_t FLAG_STACCATO = 0x40;   // 断奏 (bit6)
 
 struct ViolinEvent {
   uint16_t tick;        // 触发时刻 (1 tick = 10ms, 低字节在前)
