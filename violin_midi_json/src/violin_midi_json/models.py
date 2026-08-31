@@ -118,3 +118,32 @@ class ConversionResult:
             "meta": self.meta.to_dict(),
             "notes": [note.to_dict() for note in self.notes],
         }
+
+
+def build_converted_note(
+    note: MidiNote,
+    fingering: FingeringCandidate,
+    previous: ConvertedNote | None = None,
+) -> ConvertedNote:
+    """把「原始音符 + 选定指法」组装成带指法的最终音符。
+
+    这是离线和实时两条链路共用的组装工序：给定上一个已确定音符（用于判断是否换弦/换把），
+    把指法（弦/把位/手指）与原始音符的时间/力度信息合成为一个 ConvertedNote。
+    is_legato 此处固定为 False，弓法决策（legato / bow_direction）由下游 BowDecisionEngine 统一填写。
+    """
+    is_string_change = previous is not None and previous.string != fingering.string
+    is_position_change = previous is not None and previous.position != fingering.position
+    return ConvertedNote(
+        start=note.start,
+        end=note.end,
+        duration=note.duration,
+        pitch=note.pitch,
+        note_name=fingering.note_name,
+        string=fingering.string,
+        position=fingering.position,
+        finger=fingering.finger,
+        velocity=note.velocity,
+        is_string_change=is_string_change,
+        is_position_change=is_position_change,
+        is_legato=False,
+    )

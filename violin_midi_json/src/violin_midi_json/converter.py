@@ -27,7 +27,7 @@ from .constants import BOW_DOWN
 from .fingering_planner import GlobalFingeringPlanner
 from .mapping import ViolinPitchMapper
 from .midi_parser import MidiParser
-from .models import ConversionMeta, ConversionResult, ConvertedNote
+from .models import ConversionMeta, ConversionResult, ConvertedNote, build_converted_note
 from .scheduler import LeadTimeScheduler
 
 
@@ -71,26 +71,8 @@ class MidiToJsonConverter:
             planned_fingerings = [self.mapper.choose_default(n.pitch) for n in notes]
 
         for note, fingering in zip(notes, planned_fingerings):
-            is_string_change = previous_note is not None and previous_note.string != fingering.string
-            is_position_change = previous_note is not None and previous_note.position != fingering.position
-            is_legato = False
-
-            converted = ConvertedNote(
-                start=note.start,
-                end=note.end,
-                duration=note.duration,
-                pitch=note.pitch,
-                note_name=fingering.note_name,
-                string=fingering.string,
-                position=fingering.position,
-                finger=fingering.finger,
-                velocity=note.velocity,
-                # 和上一个音相比：弦不同→需要换弦；把位不同→需要换把。
-                # 这两个标记对机械臂很有用（可以提前规划动作）。
-                is_string_change=is_string_change,
-                is_position_change=is_position_change,
-                is_legato=is_legato,
-            )
+            # 用共用的组装工序把「原始音符 + 选定指法」合成 ConvertedNote（实时链路也复用此函数）。
+            converted = build_converted_note(note, fingering, previous_note)
             converted_notes.append(converted)
             previous_note = converted  # 记住本音，供下一个音做比较
 
