@@ -38,11 +38,19 @@ class GlobalFingeringPlanner:
         self.mapper = mapper or ViolinPitchMapper()
         self.weights = weights or FingeringCostWeights()
 
-    def plan(self, notes: Sequence[MidiNote]) -> list[FingeringCandidate]:
+    def plan(
+        self,
+        notes: Sequence[MidiNote],
+        initial: Optional[FingeringCandidate] = None,
+    ) -> list[FingeringCandidate]:
         """对输入的 MidiNote 序列进行全局最优指法规划。
 
         返回与每个音符严格对应的最优 FingeringCandidate 列表。
         若序列为空，返回空列表。
+
+        initial: 可选，上一个已确定指法的物理状态（例如上一个窗口最后一个音的指法）。
+                 提供时，第 0 个音符的代价会额外计入从 initial 转移过来的换弦/换把代价，
+                 让分段规划在边界处与整曲规划保持一致。
         """
         if not notes:
             return []
@@ -62,12 +70,14 @@ class GlobalFingeringPlanner:
         dp_costs: list[list[float]] = []
         dp_backpointers: list[list[int]] = []
 
-        # step 0 的代价仅由候选本身的固有优先级决定
+        # step 0 的代价 = 候选本身固有优先级；若给定 initial，再计入从 initial 转移过来的代价
         step0_costs: list[float] = []
         for cand in candidates_per_step[0]:
             intrinsic_cost = cand.priority * self.weights.priority_weight
             if cand.finger == 0:
                 intrinsic_cost += self.weights.open_string_bonus
+            if initial is not None:
+                intrinsic_cost += self._calc_transition_cost(initial, cand)
             step0_costs.append(intrinsic_cost)
 
         dp_costs.append(step0_costs)
@@ -147,3 +157,81 @@ class GlobalFingeringPlanner:
                 cost += self.weights.finger_jump
 
         return cost
+
+
+@dataclass(frozen=True)
+class FingeredNote:
+    """增量指法规划的一个「已定指法」产物：原始音符 + 选定的指法。"""
+
+    note: MidiNote
+    fingering: FingeringCandidate
+
+
+class OnlineFingeringPlanner:
+    """窗口化在线指法规划器（为实时读谱预留的增量指法接缝）。
+
+    与 GlobalFingeringPlanner 的关系：
+      - Global 需要整曲一次性输入，实时读谱只有按小节增量到达的音符；
+      - 本类维护一个滑动窗口缓冲区，攒满 window_size 个音符后用 Global 的 DP 求窗口内
+        最优指法，只提交前部（仍留有 lookahead_size 个未来音符做上下文）的 commit_size 个
+        音符，随后窗口前滑；边界处用上一个已提交指法做 DP 初值，保证跨批次连续。
+
+    用法：
+
+        planner = OnlineFingeringPlanner(window_size=8, lookahead_size=4)
+        for measure in source.iter_measures():
+            for fingered in planner.feed(measure):
+                ...  # 得到已定指法的音符，可据此 build_converted_note
+        for fingered in planner.flush():   # 流结束，提交缓冲区剩余音符
+            ...
+    """
+
+    def __init__(
+        self,
+        mapper: Optional[ViolinPitchMapper] = None,
+        weights: Optional[FingeringCostWeights] = None,
+        window_size: int = 8,
+        lookahead_size: int = 4,
+    ) -> None:
+        if window_size < 1:
+            raise ValueError("window_size must be >= 1")
+        if lookahead_size < 0 or lookahead_size >= window_size:
+            raise ValueError("lookahead_size must satisfy 0 <= lookahead_size < window_size")
+
+        self._planner = GlobalFingeringPlanner(mapper, weights)
+        self.window_size = window_size
+        self.lookahead_size = lookahead_size
+        self.commit_size = window_size - lookahead_size
+        self._buffer: list[MidiNote] = []
+        self._previous: Optional[FingeringCandidate] = None
+
+    def feed(self, notes: Sequence[MidiNote]) -> list[FingeredNote]:
+        """喂入一批（如一小节）原始音符，返回此刻可提交的已定指法音符。
+
+        当缓冲区攒满 window_size 个音符时，运行一次窗口内 DP 并提交前 commit_size 个，
+        剩下的留在缓冲区里作为下一窗口的前缀，等待更多未来上下文。
+        """
+        self._buffer.extend(notes)
+        committed: list[FingeredNote] = []
+        while len(self._buffer) >= self.window_size:
+            window = self._buffer[: self.window_size]
+            fingerings = self._planner.plan(window, initial=self._previous)
+            to_commit = fingerings[: self.commit_size]
+            for note, fingering in zip(window[: self.commit_size], to_commit):
+                committed.append(FingeredNote(note=note, fingering=fingering))
+            self._previous = to_commit[-1]
+            del self._buffer[: self.commit_size]
+        return committed
+
+    def flush(self) -> list[FingeredNote]:
+        """流结束时提交缓冲区剩余音符（此时已无更多未来上下文）。"""
+        if not self._buffer:
+            return []
+        fingerings = self._planner.plan(self._buffer, initial=self._previous)
+        result = [
+            FingeredNote(note=note, fingering=fingering)
+            for note, fingering in zip(self._buffer, fingerings)
+        ]
+        self._previous = fingerings[-1]
+        self._buffer = []
+        return result
