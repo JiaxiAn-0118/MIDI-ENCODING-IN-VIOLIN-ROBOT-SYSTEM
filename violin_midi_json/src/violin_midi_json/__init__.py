@@ -12,16 +12,27 @@
 # 把内部各模块里实现的核心类汇总到这里，对外只暴露这一份"菜单"。
 from .binary_encoder import BinaryViolinEventEncoder   # 把音符编码成 12 字节二进制包
 from .converter import MidiToJsonConverter             # 转换总指挥：串起 解析→规划→编码
-from .fingering_planner import FingeringCostWeights, GlobalFingeringPlanner # 全局指法 DP 规划器
+from .fingering_planner import FingeringCostWeights, FingeredNote, GlobalFingeringPlanner, OnlineFingeringPlanner # 全局/在线指法规划
 from .models import ConvertedNote, ConversionMeta, ConversionResult, FingeringCandidate, MidiNote  # 各类数据容器
 from .scheduler import ActionType, LeadTimeScheduler, ScheduledAction, SchedulerConfig, TimedNoteSchedule # 时序调度
-from .streaming import ActionSink, NoteSource, RealtimePipeline, ViolinAction
+from .streaming import (  # 实时骨架：来源/指法/执行接缝 + 双线程管线
+    ActionSink,
+    FingeringPlanner,
+    ListActionSink,
+    MidiMeasureSource,
+    NoteSource,
+    RealtimePipeline,
+    VisionScoreSource,
+    ViolinAction,
+)
 
 # __all__ 列出了"import *"时会导出的名字，相当于这份菜单的正式目录。
 __all__ = [
     "BinaryViolinEventEncoder",
     "MidiToJsonConverter",
     "GlobalFingeringPlanner",
+    "OnlineFingeringPlanner",
+    "FingeredNote",
     "FingeringCostWeights",
     "LeadTimeScheduler",
     "SchedulerConfig",
@@ -35,6 +46,10 @@ __all__ = [
     "ConversionResult",
     "ViolinAction",
     "NoteSource",
+    "FingeringPlanner",
     "ActionSink",
+    "ListActionSink",
+    "MidiMeasureSource",
+    "VisionScoreSource",
     "RealtimePipeline",
 ]
