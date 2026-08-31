@@ -156,6 +156,28 @@ class BowDecisionEngine:
             )
         return decisions
 
+    def decide_streaming(
+        self,
+        note: ConvertedNote,
+        lookahead_notes: Sequence[ConvertedNote] = (),
+    ) -> BowDecision:
+        """面向实时流的单音决策入口（状态跨调用保持，不做批量重置）。
+
+        与 decide_all 的差异：
+          - decide_all 每次调用会重置弓位/上一音/方向历史，用于离线整段批量决策；
+          - 本方法不重置，弓向决策器的内部状态随流推进，供实时管线跨小节连续调用。
+        首次调用（self.previous_note 尚为空）自动视为全曲第一个音。
+        """
+        quarter_sec = 60.0 / self.options.tempo_bpm
+        beat_position = note.start / quarter_sec if quarter_sec > 0 else 0.0
+        return self.decide(
+            note=note,
+            beat_position=beat_position,
+            explicit_legato=note.is_legato,
+            is_first_note=self.previous_note is None,
+            lookahead_notes=lookahead_notes,
+        )
+
     def _compute_bow_speed(self, note: ConvertedNote, is_legato: bool, direction: int) -> int:
         """基于音符时值和连奏信息，计算一个 1~10 的弓速等级（数值越大越快）。
 
